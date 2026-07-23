@@ -12,8 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The managed core of the Windows link task (pure translator + COFF
-         renamer), exercised by WindowsTranslatorTests / CoffRenamerTests. -->
+    <!-- The managed Windows linker task and response-file tokenizer. -->
     <ProjectReference Include="../../src/tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj" />
   </ItemGroup>
 

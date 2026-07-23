@@ -1,7 +1,7 @@
 namespace AotAnywhere.MSBuild.Tests;
 
 // The heart of the macOS DirectLink logic: _AotAnywhereComputeMacLinkArgs turns
-// the SDK-computed @(LinkerArg) into the zig cc command line. Running it with a
+// the SDK-computed @(LinkerArg) into the Clang command line. Running it with a
 // forced cross configuration (_AotAnywhereMacHostLink=false, injected
 // _MacSysroot) makes the reconstruction deterministic and host-independent.
 //
@@ -74,7 +74,7 @@ public class MacLinkArgsTests
 
     // The strip -x equivalent: StripSymbols=true (the SDK default) folds
     // ld64's -x (drop local symbols) and -S (drop the stabs debug map) into
-    // the link line; Apple's post-link strip cannot run on zig-linked
+    // the link line; Apple's post-link strip cannot run on cross-linked
     // binaries, so this is the only strip path (issue #62 - the unstripped
     // ILC local symbols and stabs tripled the binary size).
     [Test]
@@ -94,6 +94,13 @@ public class MacLinkArgsTests
             await Assert.That(args.Any(a => a == "-Wl,-x")).IsFalse();
             await Assert.That(args.Any(a => a == "-Wl,-S")).IsFalse();
         }
+    }
+
+    [Test]
+    public async Task CrossLinksUseAdHocSigning()
+    {
+        await Assert.That(Compute("--target=aarch64-macos").Any(a => a == "-Wl,-adhoc_codesign"))
+            .IsTrue();
     }
 
     [Test]

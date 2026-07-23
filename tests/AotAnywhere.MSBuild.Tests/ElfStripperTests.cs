@@ -4,7 +4,7 @@ using AotAnywhere.Tasks;
 namespace AotAnywhere.MSBuild.Tests;
 
 // The full ELF strip is validated end-to-end by CI running the stripped Linux
-// binaries, and was proven byte-identical to the retired objcopy_shim.zig. This
+// binaries and preserves the retired shim's behavior. This
 // guards the one pure, host-independent piece: the .gnu_debuglink CRC.
 public class ElfStripperTests
 {

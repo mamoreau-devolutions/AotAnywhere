@@ -1,42 +1,39 @@
 #!/usr/bin/env bash
-# Prove StuDev.AotAnywhere works when consumed as a real NuGet package from a
-# CLEAN NuGet cache — the path the rest of CI cannot see: test/Hello.csproj
-# imports src/StuDev.AotAnywhere.targets directly, which makes the Zig toolset
-# reference a first-class project reference. A real consumer gets that
-# reference from inside the installed package's build/ targets, which NuGet
-# restore does not evaluate (NuGet/Home#4790), and that difference is exactly
-# what broke first-time consumers before Sdk/Sdk.props existed.
+# Prove that the SDK restores the host Clang package and Linux sysroot during a
+# clean first restore. The fixture packages are assembled from the immutable
+# artifact manifest into the local feed before the consumer is scaffolded.
 #
 # Cases:
-#   sdk        - <Sdk Name="StuDev.AotAnywhere"/> element: must work zero-config
-#   bare       - plain PackageReference only: must fail with the actionable
-#                AotAnywhere "Zig toolset was not restored" error
-#   workaround - PackageReference + explicit host Zig toolset: must work
-#                (the documented alternative for PackageReference consumers)
-#
-# Usage: test-package-consumption.sh [host-rid]   (default: from dotnet --info)
+#   sdk        - SDK element restores the toolset and sysroot automatically
+#   bare       - PackageReference only fails with an actionable restore message
+#   workaround - PackageReference plus both explicit content packages succeeds
 
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 host_rid="${1:-$(dotnet --info | sed -n 's/^ *RID: *//p' | head -1)}"
-[ -n "$host_rid" ] || { echo "could not determine host RID"; exit 1; }
+[ "$host_rid" = "linux-x64" ] || { echo "Package consumption fixture supports linux-x64 only; got $host_rid"; exit 1; }
 
 work="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/aotanywhere-consumption"
 rm -rf "$work"
 mkdir -p "$work/feed"
 
 version="0.0.1-ci"
-zig_version=$(sed -n "s/.*<ZigVersion[^>]*>\([^<]*\)<\/ZigVersion>.*/\1/p" "$repo_root/src/ZigVersion.props" | head -1)
+toolset_id="StuDev.AotAnywhere.Clang.Toolsets.$host_rid"
+sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64"
+toolset_version="$(pwsh -NoProfile -Command "(Get-Content '$repo_root/eng/toolchain-artifacts.json' -Raw | ConvertFrom-Json).clangToolsets | Where-Object packageId -eq '$toolset_id' | Select-Object -ExpandProperty packageVersion")"
+sysroot_version="$(pwsh -NoProfile -Command "(Get-Content '$repo_root/eng/toolchain-artifacts.json' -Raw | ConvertFrom-Json).linuxSysroots | Where-Object packageId -eq '$sysroot_id' | Select-Object -ExpandProperty packageVersion")"
 
-echo "==> Packing StuDev.AotAnywhere $version (host: $host_rid, zig: $zig_version)"
+echo "==> Preparing immutable Clang and sysroot fixture packages"
+pwsh -NoProfile -File "$repo_root/eng/build-toolchain-content.ps1" -PackageId "$toolset_id" -OutputDirectory "$work/feed"
+pwsh -NoProfile -File "$repo_root/eng/build-toolchain-content.ps1" -PackageId "$sysroot_id" -OutputDirectory "$work/feed"
+
+echo "==> Packing StuDev.AotAnywhere $version"
 dotnet build -t:Pack "$repo_root/src/AotAnywhere.nuproj" -p:Version="$version"
 nupkg=$(find "$repo_root/src/bin" -name "StuDev.AotAnywhere.$version.nupkg" | head -1)
 [ -n "$nupkg" ] || { echo "packed nupkg not found"; exit 1; }
 cp "$nupkg" "$work/feed/"
 
-# Scaffold a consumer per case. Each gets its own directory (own obj/) and its
-# own empty NUGET_PACKAGES, so nothing pre-restored can leak in.
 scaffold() {
   local dir="$1" csproj_body="$2"
   mkdir -p "$dir"
@@ -67,58 +64,56 @@ EOF
 }
 
 publish() {
-  local dir="$1" rid="$2" log="$3"
+  local dir="$1" log="$2"
   NUGET_PACKAGES="$dir/nuget-cache" dotnet publish "$dir/Consumer.csproj" \
-    -r "$rid" -c Release -o "$dir/out/$rid" 2>&1 | tee "$log"
+    -r linux-x64 -c Release -o "$dir/out" 2>&1 | tee "$log"
 }
 
 failures=0
 
 echo
-echo "==> Case: SDK element (must cross-compile from a clean cache, zero config)"
+echo "==> Case: SDK element (clean restore, zero configuration)"
 scaffold "$work/sdk" "  <Sdk Name=\"StuDev.AotAnywhere\" Version=\"$version\" />"
-for rid in linux-arm64 win-x64; do
-  bin="$work/sdk/out/$rid/Consumer"
-  [ "$rid" = win-x64 ] && bin="$bin.exe"
-  if publish "$work/sdk" "$rid" "$work/sdk-$rid.log" && [ -f "$bin" ]; then
-    echo "✅ sdk: $rid produced $(basename "$bin")"
-  else
-    echo "❌ sdk: $rid failed or produced no binary"
-    failures=$((failures + 1))
-  fi
-done
+if publish "$work/sdk" "$work/sdk.log" &&
+  [ -f "$work/sdk/out/Consumer" ] &&
+  grep -q "$toolset_id" "$work/sdk/obj/project.assets.json" &&
+  grep -q "$sysroot_id" "$work/sdk/obj/project.assets.json"; then
+  echo "sdk: produced Consumer with the restored toolset and sysroot"
+else
+  echo "sdk: publish failed or the restore graph omitted a required content package"
+  failures=$((failures + 1))
+fi
 
 echo
-echo "==> Case: bare PackageReference (must fail with the actionable error)"
+echo "==> Case: bare PackageReference (expected actionable failure)"
 scaffold "$work/bare" "  <ItemGroup>
     <PackageReference Include=\"StuDev.AotAnywhere\" Version=\"$version\" PrivateAssets=\"all\" />
   </ItemGroup>"
-if publish "$work/bare" linux-arm64 "$work/bare.log"; then
-  echo "❌ bare: expected the publish to fail on a clean cache, but it succeeded"
+if publish "$work/bare" "$work/bare.log"; then
+  echo "bare: expected publish to fail on a clean cache, but it succeeded"
   failures=$((failures + 1))
-elif grep -q "AotAnywhere: the Zig toolset" "$work/bare.log"; then
-  echo "✅ bare: failed with the actionable AotAnywhere error"
+elif grep -q "AotAnywhere: the Clang toolset" "$work/bare.log"; then
+  echo "bare: failed with the actionable AotAnywhere error"
 else
-  echo "❌ bare: failed, but without the actionable AotAnywhere error"
+  echo "bare: failed without the expected AotAnywhere error"
   failures=$((failures + 1))
 fi
 
 echo
-echo "==> Case: PackageReference + explicit Zig toolset (documented alternative)"
+echo "==> Case: PackageReference plus explicit content packages"
 scaffold "$work/workaround" "  <ItemGroup>
     <PackageReference Include=\"StuDev.AotAnywhere\" Version=\"$version\" PrivateAssets=\"all\" />
-    <PackageReference Include=\"Vezel.Zig.Toolsets.$host_rid\" Version=\"$zig_version\" PrivateAssets=\"all\" GeneratePathProperty=\"true\" />
+    <PackageReference Include=\"$toolset_id\" Version=\"$toolset_version\" PrivateAssets=\"all\" GeneratePathProperty=\"true\" />
+    <PackageReference Include=\"$sysroot_id\" Version=\"$sysroot_version\" PrivateAssets=\"all\" GeneratePathProperty=\"true\" />
   </ItemGroup>"
-if publish "$work/workaround" linux-arm64 "$work/workaround.log" && [ -f "$work/workaround/out/linux-arm64/Consumer" ]; then
-  echo "✅ workaround: linux-arm64 produced Consumer"
+if publish "$work/workaround" "$work/workaround.log" && [ -f "$work/workaround/out/Consumer" ]; then
+  echo "workaround: produced Consumer"
 else
-  echo "❌ workaround: failed or produced no binary"
+  echo "workaround: publish failed or produced no binary"
   failures=$((failures + 1))
 fi
 
-echo
 if [ "$failures" -gt 0 ]; then
-  echo "❌ $failures consumption case(s) failed"
+  echo "$failures package-consumption case(s) failed"
   exit 1
 fi
-echo "✅ all package consumption cases passed"

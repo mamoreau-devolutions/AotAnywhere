@@ -22,10 +22,80 @@ on:
       - 'v*'
 
 jobs:
+  prepare-toolchain-packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: depot-ubuntu-latest
+            name: unix
+            package-ids: >-
+              StuDev.AotAnywhere.Clang.Toolsets.linux-x64,
+              StuDev.AotAnywhere.Clang.Toolsets.linux-arm64,
+              StuDev.AotAnywhere.Clang.Toolsets.osx-x64,
+              StuDev.AotAnywhere.Clang.Toolsets.osx-arm64,
+              StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64,
+              StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm64,
+              StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64,
+              StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64
+          - runner: depot-windows-latest
+            name: windows-x64
+            package-ids: StuDev.AotAnywhere.Clang.Toolsets.win-x64
+          - runner: windows-11-arm
+            name: windows-arm64
+            package-ids: StuDev.AotAnywhere.Clang.Toolsets.win-arm64
+    runs-on: ${{ matrix.runner }}
+    name: Prepare toolchains (${{ matrix.name }})
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      - name: Download, verify, and pack immutable artifacts
+        shell: pwsh
+        run: |
+          $ids = '${{ matrix.package-ids }}' -split ',' |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -ne '' }
+          foreach ($id in $ids) {
+            ./eng/build-toolchain-content.ps1 -PackageId $id -OutputDirectory artifacts
+          }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: toolchain-${{ matrix.name }}
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+
+  publish-toolchain-packages:
+    needs: prepare-toolchain-packages
+    runs-on: depot-ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: toolchain-*
+          path: artifacts/toolchains
+      - name: NuGet login (OIDC)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+      - name: Push toolchain content packages
+        shell: bash
+        run: |
+          find artifacts/toolchains -name '*.nupkg' -print0 | xargs -0 -r dotnet nuget push \
+            --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
   publish:
-    # The package is host-independent now (one portable netstandard2.0 task DLL,
-    # no per-host prebuilt binaries), so any runner can pack it; windows-latest
-    # is retained only for continuity.
+    needs: publish-toolchain-packages
+    # The SDK package is host-independent (one portable netstandard2.0 task DLL).
+    # Its currently available toolset/sysroot content packages are published by
+    # the prerequisite job. ARMv7 and the non-Windows Windows cross-link bundle
+    # are intentionally absent until their immutable upstream artifacts exist.
     runs-on: depot-windows-latest
     # Trusted publishing: NuGet/login mints a short-lived key from the OIDC
     # token instead of a long-lived nuget.org API key. contents: write is for

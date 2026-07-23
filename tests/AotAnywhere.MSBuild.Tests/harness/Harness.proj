@@ -16,4 +16,7 @@
 
   <Import Project="$(AotAnywhereSrcDir)Crosscompile.targets" />
 
+  <Target Name="ResolveLinuxToolchainForTests"
+          DependsOnTargets="OverwriteTargetTriple;SetLinuxSysroot" />
+
 </Project>

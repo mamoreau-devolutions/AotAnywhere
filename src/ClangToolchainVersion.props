@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- Single source of truth for the versioned, host-specific Clang/LLVM
+       toolsets and target sysroot content packages. The toolset packages contain
+       only the compiler-driver runtime required by AotAnywhere (not a complete
+       LLVM development distribution). -->
+  <PropertyGroup>
+    <AotAnywhereClangToolsetVersion Condition="'$(AotAnywhereClangToolsetVersion)' == ''">22.1.4.1</AotAnywhereClangToolsetVersion>
+    <AotAnywhereLinuxSysrootVersion Condition="'$(AotAnywhereLinuxSysrootVersion)' == ''">2026.1.15.1</AotAnywhereLinuxSysrootVersion>
+    <AotAnywhereWindowsCrossLinkVersion Condition="'$(AotAnywhereWindowsCrossLinkVersion)' == ''">2026.2.0.1</AotAnywhereWindowsCrossLinkVersion>
+    <AotAnywhereArmv7SysrootsAvailable Condition="'$(AotAnywhereArmv7SysrootsAvailable)' == ''">false</AotAnywhereArmv7SysrootsAvailable>
+    <AotAnywhereWindowsCrossLinkAvailable Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == ''">false</AotAnywhereWindowsCrossLinkAvailable>
+  </PropertyGroup>
+
+</Project>

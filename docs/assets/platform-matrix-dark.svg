@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" width="880" height="400" role="img" aria-label="AotAnywhere platform matrix: builds on Windows, macOS and Linux hosts; runs on Linux (glibc and musl), macOS and Windows targets. Every combination is CI-tested.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" width="880" height="400" role="img" aria-label="AotAnywhere platform matrix: Clang/LLVM toolsets and target sysroots are restored through NuGet content packages.">
   <style>
     /* palette: dark */
     .surface      { fill: #1a1a19; stroke: rgba(255,255,255,0.10); }
@@ -66,7 +66,7 @@
   <rect class="node" x="356.5" y="125.5" width="167" height="103" rx="12"/>
   <text class="brand ink" x="440" y="160" text-anchor="middle">AotAnywhere</text>
   <text class="cmd mono ink2" x="440" y="184" text-anchor="middle">dotnet publish -r &lt;rid&gt;</text>
-  <text class="nodesub muted" x="440" y="206" text-anchor="middle">NuGet package · Zig built in</text>
+  <text class="nodesub muted" x="440" y="206" text-anchor="middle">NuGet packages · Clang + sysroots</text>
 
   <!-- flow: node -> targets -->
   <g>
@@ -105,5 +105,5 @@
 
   <!-- footer -->
   <line class="hair" x1="36" y1="336" x2="844" y2="336"/>
-  <text class="footer ink2" x="440" y="366" text-anchor="middle"><tspan class="good strong">✓&#160;&#160;</tspan><tspan class="strong ink">Every combination CI-tested&#160;—&#160;</tspan><tspan>5 hosts × 10 target RIDs, every binary built and executed on its target platform</tspan></text>
+  <text class="footer ink2" x="440" y="366" text-anchor="middle"><tspan class="strong ink">Versioned LLVM toolsets and target sysroots</tspan></text>
 </svg>

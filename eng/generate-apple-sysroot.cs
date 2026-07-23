@@ -13,11 +13,9 @@
 //      osx-x64 and osx-arm64 from nuget.org (cached under eng/.cache/).
 //   2. Collects the undefined symbols of every static library / object file in
 //      each pack, minus the symbols the same pack defines itself.
-//   3. Drops symbols that zig's bundled libSystem stub already resolves
-//      (zig cc always links libSystem for macOS targets).
-//   4. Attributes each remaining symbol to the Apple library that exports it,
+//   3. Attributes each remaining symbol to the Apple library that exports it,
 //      using the local macOS SDK's .tbd files as the lookup table.
-//   5. Writes minimal tbd-v4 stubs (only the referenced symbols, i.e. symbol
+//   4. Writes minimal tbd-v4 stubs (only the referenced symbols, i.e. symbol
 //      lists derived from the MIT-licensed .NET runtime packs - NOT copies of
 //      Apple's export lists) to src/apple-sysroot/.
 //
@@ -70,6 +68,7 @@ static partial class Generator
     // (name, SDK tbd path relative to the SDK root, sysroot-relative output path)
     static readonly (string Name, string SdkRel, string OutRel)[] Libraries =
     [
+        ("libSystem", "usr/lib/libSystem.B.tbd", "usr/lib/libSystem.tbd"),
         ("CoreFoundation", "System/Library/Frameworks/CoreFoundation.framework/CoreFoundation.tbd",
          "System/Library/Frameworks/CoreFoundation.framework/CoreFoundation.tbd"),
         ("Foundation", "System/Library/Frameworks/Foundation.framework/Foundation.tbd",
@@ -125,26 +124,6 @@ static partial class Generator
     }
 
     static string SdkPath() => Run("xcrun", "--show-sdk-path").Trim();
-
-    static string ZigLibSystemTbd()
-    {
-        // Locate the libSystem stub bundled with the zig on PATH.
-        string outp = Run("zig", "env");
-        var m = Regex.Match(outp, "\\.lib_dir = \"([^\"]+)\"");   // zig 0.15+ zon output
-        if (!m.Success)
-            m = Regex.Match(outp, "\"lib_dir\":\\s*\"([^\"]+)\""); // older json output
-        if (!m.Success)
-            Fail("error: could not parse `zig env` output to find lib_dir");
-        string libcDir = Path.Combine(m.Groups[1].Value, "libc", "darwin");
-        foreach (var name in new[] { "libSystem.tbd", "libSystem.B.tbd" })
-        {
-            string p = Path.Combine(libcDir, name);
-            if (File.Exists(p))
-                return p;
-        }
-        Fail($"error: no libSystem stub found in {libcDir}");
-        return null!;
-    }
 
     static string PackId(string family, string rid) => family == "ilcompiler"
         ? $"runtime.{rid}.microsoft.dotnet.ilcompiler"
@@ -346,7 +325,7 @@ static partial class Generator
         }
     }
 
-    // Union of exports over every YAML document in an Apple/zig .tbd file.
+    // Union of exports over every YAML document in an Apple .tbd file.
     //
     // Sub-libraries of an umbrella (e.g. Security's inlined sub-dylibs, or
     // libSystem's libsystem_* members) appear as extra documents; attributing
@@ -458,11 +437,7 @@ static partial class Generator
 
         string sdk = SdkPath();
         Console.WriteLine($"SDK: {sdk}");
-        string zigTbd = ZigLibSystemTbd();
-        Console.WriteLine($"zig libSystem stub: {zigTbd}");
 
-        var libsystem = ParseTbd(zigTbd);
-        var sdkLibsystem = ParseTbd(Path.Combine(sdk, "usr/lib/libSystem.B.tbd"));
         var libs = new List<(string Name, string OutRel, TbdInfo Tbd)>();
         foreach (var (name, sdkRel, outRel) in Libraries)
         {
@@ -505,11 +480,6 @@ static partial class Generator
             libs.Add((lib, rel, ParseTbd(sdkTbd)));
         }
 
-        var resolvedByLibsystem = needed.Where(s => libsystem.Lookup(s) is not null).ToHashSet();
-        needed.ExceptWith(resolvedByLibsystem);
-        var missingFromZig = needed.Where(s => sdkLibsystem.Lookup(s) is not null).ToHashSet();
-        needed.ExceptWith(missingFromZig); // libSystem-owned either way; a stub can't help
-
         // lib -> kind -> set of syms
         var assigned = libs.ToDictionary(l => l.Name, _ => new Dictionary<string, HashSet<string>>());
         var leftovers = new List<string>();
@@ -532,7 +502,6 @@ static partial class Generator
                 leftovers.Add(symbol);
         }
 
-        Console.WriteLine($"\n{resolvedByLibsystem.Count} symbols resolved by zig's libSystem stub");
         foreach (var (name, outRel, tbd) in libs)
         {
             var buckets = assigned[name];
@@ -542,13 +511,6 @@ static partial class Generator
             Console.WriteLine($"{name}: {total} symbols -> {Path.GetRelativePath(RepoRoot, outPath)}");
         }
 
-        if (missingFromZig.Count != 0)
-        {
-            Console.WriteLine("\nWARNING: needed by the packs, exported by the SDK's libSystem, but " +
-                "missing from zig's libSystem stub (link will fail until zig updates):");
-            foreach (var s in missingFromZig.OrderBy(s => s, StringComparer.Ordinal))
-                Console.WriteLine($"  {s}");
-        }
         if (leftovers.Count != 0)
         {
             Console.WriteLine($"\n{leftovers.Count} symbols not attributed to any stub " +

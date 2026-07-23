@@ -4,7 +4,7 @@ using MSBuildTask = Microsoft.Build.Utilities.Task;
 namespace AotAnywhere.Tasks;
 
 /// Symbol-strips a Linux Native AOT binary, replacing the llvm-objcopy
-/// personality of the shim (objcopy_shim.zig). Mirrors the three llvm-objcopy
+/// behavior of the retired objcopy shim. Mirrors the three llvm-objcopy
 /// invocations the ILC strip does, in order:
 ///
 ///   --only-keep-debug <bin> <bin>.dbg   (KeepDebugSymbols: sidecar = full copy)
