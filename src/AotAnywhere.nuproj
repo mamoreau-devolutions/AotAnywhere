@@ -128,8 +128,12 @@
                   ReplaceWith="$(AotAnywhereWindowsCrossLinkVersion)" />
     <ReplaceInFile Source="$(_BakedSdkProps)"
                   Destination="$(_BakedSdkProps)"
-                  Find="__AOTANYWHERE_ARMV7_SYSROOTS_AVAILABLE__"
-                  ReplaceWith="$(AotAnywhereArmv7SysrootsAvailable)" />
+                  Find="__AOTANYWHERE_LINUX_ARM_SYSROOT_AVAILABLE__"
+                  ReplaceWith="$(AotAnywhereLinuxArmSysrootAvailable)" />
+    <ReplaceInFile Source="$(_BakedSdkProps)"
+                   Destination="$(_BakedSdkProps)"
+                   Find="__AOTANYWHERE_LINUX_MUSL_ARM_SYSROOT_AVAILABLE__"
+                   ReplaceWith="$(AotAnywhereLinuxMuslArmSysrootAvailable)" />
     <ReplaceInFile Source="$(_BakedSdkProps)"
                   Destination="$(_BakedSdkProps)"
                   Find="__AOTANYWHERE_WINDOWS_CROSS_LINK_AVAILABLE__"

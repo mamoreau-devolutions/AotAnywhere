@@ -94,6 +94,47 @@ public class ClangResolutionTests
     }
 
     [Test]
+    public async Task PublishedMuslArmSysrootResolvesFromTheNuGetPackageProperty()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "aotanywhere-musl-arm-sysroot-" + Guid.NewGuid());
+        var toolset = Path.Combine(root, "clang-toolset");
+        var sysrootPackage = Path.Combine(root, "sysroot-package");
+        var gccLibrary = Path.Combine(
+            sysrootPackage,
+            "tools",
+            "sysroot",
+            "usr",
+            "lib",
+            "gcc",
+            "armv7-alpine-linux-musleabihf",
+            "14.2.0");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(toolset, "tools"));
+            Directory.CreateDirectory(gccLibrary);
+
+            var result = Harness.Run("ResolveLinuxToolchainForTests", new Dictionary<string, string>
+            {
+                ["RuntimeIdentifier"] = "linux-musl-arm",
+                ["HostRuntimeIdentifier"] = "linux-x64",
+                ["PkgStuDev_AotAnywhere_Clang_Toolsets_linux-x64"] = toolset,
+                ["PkgStuDev_AotAnywhere_Linux_Sysroots_alpine-3_17-arm"] = sysrootPackage,
+            });
+
+            await Assert.That(result.Success)
+                .IsTrue().Because($"SetLinuxSysroot failed: {result.ErrorText}");
+            await Assert.That(result.Prop("AotAnywhereLinuxMuslArmSysrootAvailable"))
+                .IsEqualTo("true");
+            await Assert.That(Path.GetFullPath(result.Prop("AotAnywhereLinuxGccLibraryDirectory")))
+                .IsEqualTo(Path.GetFullPath(gccLibrary));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task MissingRestoredToolsetHasActionableError()
     {
         var result = Harness.Run("SetPathToClang", new Dictionary<string, string>
@@ -109,18 +150,17 @@ public class ClangResolutionTests
     }
 
     [Test]
-    public async Task DeferredArmv7SysrootHasActionableError()
+    public async Task IncompatibleArmGlibcSysrootHasActionableError()
     {
         var result = Harness.Run("ResolveLinuxToolchainForTests", new Dictionary<string, string>
         {
             ["RuntimeIdentifier"] = "linux-arm",
             ["HostRuntimeIdentifier"] = "linux-x64",
             ["UseExternalClang"] = "true",
-            ["AotAnywhereArmv7SysrootsAvailable"] = "false",
         });
 
         await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.ErrorText).Contains("ARMv7 Linux sysroots are deferred");
+        await Assert.That(result.ErrorText).Contains("linux-arm requires an ARM glibc sysroot");
         await Assert.That(result.ErrorText).Contains("AotAnywhereLinuxSysroot");
     }
 

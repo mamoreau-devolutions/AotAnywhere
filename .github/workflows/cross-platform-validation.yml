@@ -22,14 +22,20 @@ jobs:
 
   package-consumption:
     runs-on: depot-ubuntu-latest
-    name: Package consumption (clean NuGet cache)
+    name: Package consumption (${{ matrix.target-rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        target-rid: [linux-x64, linux-musl-arm]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: |
+            8.0.x
+            9.0.x
       - name: Test the restored Clang/sysroot package graph
-        run: bash .github/scripts/test-package-consumption.sh linux-x64
+        run: bash .github/scripts/test-package-consumption.sh linux-x64 ${{ matrix.target-rid }}
 
   linux-native-smoke:
     runs-on: depot-ubuntu-latest

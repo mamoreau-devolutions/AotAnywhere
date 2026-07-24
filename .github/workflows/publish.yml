@@ -37,7 +37,8 @@ jobs:
               StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64,
               StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm64,
               StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64,
-              StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64
+              StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64,
+              StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm
           - runner: depot-windows-latest
             name: windows-x64
             package-ids: StuDev.AotAnywhere.Clang.Toolsets.win-x64
@@ -94,8 +95,8 @@ jobs:
     needs: publish-toolchain-packages
     # The SDK package is host-independent (one portable netstandard2.0 task DLL).
     # Its currently available toolset/sysroot content packages are published by
-    # the prerequisite job. ARMv7 and the non-Windows Windows cross-link bundle
-    # are intentionally absent until their immutable upstream artifacts exist.
+    # the prerequisite job. The non-Windows Windows cross-link bundle remains
+    # absent until its immutable upstream artifact exists.
     runs-on: depot-windows-latest
     # Trusted publishing: NuGet/login mints a short-lived key from the OIDC
     # token instead of a long-lived nuget.org API key. contents: write is for

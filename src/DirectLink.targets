@@ -25,18 +25,21 @@
     <_AotAnywhereDirectLinkActive Condition="$(RuntimeIdentifier.StartsWith('linux')) and '$(NativeLib)' != 'Static'">true</_AotAnywhereDirectLinkActive>
   </PropertyGroup>
 
-  <Target Name="AotAnywhereDirectLinkNative"
-          Condition="'$(_AotAnywhereDirectLinkActive)' == 'true'"
-          BeforeTargets="LinkNative"
-          DependsOnTargets="SetupOSSpecificProps;OverwriteTargetTriple;SetPathToClang;PointLinkerToClang;SetLinuxSysroot"
-          Inputs="$(NativeObject);@(NativeLibrary)"
-          Outputs="$(NativeBinary)">
-
+  <!-- PURE: build the Linux Clang argument list. This stays separate from the
+       link execution target so the SDK-provided linker arguments can be
+       regression-tested without a compiler or sysroot. -->
+  <Target Name="_AotAnywhereComputeLinuxLinkArgs">
     <ItemGroup>
       <!-- A shared NativeAOT library has no entry point. The SDK emits one for
           its GNU-linker flow, but Clang's LLD driver rejects that shape. -->
       <_AotAnywhereDroppedLinkerArg Include="-Wl,-e0x0" />
       <_AotAnywhereDroppedLinkerArg Include="-Wl,-e,0x0" />
+      <_AotAnywhereSdkLinkerArg Include="@(LinkerArg)" Exclude="@(_AotAnywhereDroppedLinkerArg)" />
+      <!-- Newer SDK runtime packs may select BFD after AotAnywhere's argument
+          prefix. Item metadata filtering drops every linker-driver selection
+          before this target appends LLD last. -->
+      <_AotAnywhereSdkLinkerArg Remove="@(_AotAnywhereSdkLinkerArg)"
+                                Condition="$([System.String]::Copy('%(_AotAnywhereSdkLinkerArg.Identity)').StartsWith('-fuse-ld='))" />
     </ItemGroup>
 
     <ItemGroup>
@@ -48,8 +51,8 @@
           applies here). -->
       <_AotAnywhereLinkArg Include="--sysroot=&quot;$(AotAnywhereLinuxSysroot)&quot;" />
       <_AotAnywhereLinkArg Include="--gcc-toolchain=&quot;$(AotAnywhereLinuxSysroot)/usr&quot;" />
+      <_AotAnywhereLinkArg Include="-B&quot;$(AotAnywhereLinuxGccLibraryDirectory)&quot;" />
       <_AotAnywhereLinkArg Include="-L&quot;$(AotAnywhereLinuxGccLibraryDirectory)&quot;" />
-      <_AotAnywhereLinkArg Include="-fuse-ld=lld" />
       <_AotAnywhereLinkArg Include="-Wl,-u,__Module" />
       <_AotAnywhereLinkArg Include="&quot;$(NativeObject)&quot;" />
       <_AotAnywhereLinkArg Include="-o &quot;$(NativeBinary)&quot;" />
@@ -59,10 +62,19 @@
            ld tolerates them. ILC's generated exports can contain _init/_fini,
            so preserve the GNU behavior. -->
       <_AotAnywhereLinkArg Include="-Wl,--undefined-version" Condition="'$(ExportsFile)' != ''" />
-      <_AotAnywhereLinkArg Include="@(LinkerArg)" Exclude="@(_AotAnywhereDroppedLinkerArg)" />
+      <_AotAnywhereLinkArg Include="@(_AotAnywhereSdkLinkerArg)" />
+      <_AotAnywhereLinkArg Include="-fuse-ld=lld" />
       <_AotAnywhereLinkArg Include="-Wl,--discard-all" />
       <_AotAnywhereLinkArg Include="-Wl,--gc-sections" />
     </ItemGroup>
+  </Target>
+
+  <Target Name="AotAnywhereDirectLinkNative"
+          Condition="'$(_AotAnywhereDirectLinkActive)' == 'true'"
+          BeforeTargets="LinkNative"
+          DependsOnTargets="SetupOSSpecificProps;OverwriteTargetTriple;SetPathToClang;PointLinkerToClang;SetLinuxSysroot;_AotAnywhereComputeLinuxLinkArgs"
+          Inputs="$(NativeObject);@(NativeLibrary)"
+          Outputs="$(NativeBinary)">
 
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName($(NativeBinary)))" />
 

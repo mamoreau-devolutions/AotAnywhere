@@ -30,7 +30,8 @@
     <AotAnywhereClangToolsetVersion Condition="'$(AotAnywhereClangToolsetVersion)' == ''">__AOTANYWHERE_CLANG_TOOLSET_VERSION__</AotAnywhereClangToolsetVersion>
     <AotAnywhereLinuxSysrootVersion Condition="'$(AotAnywhereLinuxSysrootVersion)' == ''">__AOTANYWHERE_LINUX_SYSROOT_VERSION__</AotAnywhereLinuxSysrootVersion>
     <AotAnywhereWindowsCrossLinkVersion Condition="'$(AotAnywhereWindowsCrossLinkVersion)' == ''">__AOTANYWHERE_WINDOWS_CROSS_LINK_VERSION__</AotAnywhereWindowsCrossLinkVersion>
-    <AotAnywhereArmv7SysrootsAvailable Condition="'$(AotAnywhereArmv7SysrootsAvailable)' == ''">__AOTANYWHERE_ARMV7_SYSROOTS_AVAILABLE__</AotAnywhereArmv7SysrootsAvailable>
+    <AotAnywhereLinuxArmSysrootAvailable Condition="'$(AotAnywhereLinuxArmSysrootAvailable)' == ''">__AOTANYWHERE_LINUX_ARM_SYSROOT_AVAILABLE__</AotAnywhereLinuxArmSysrootAvailable>
+    <AotAnywhereLinuxMuslArmSysrootAvailable Condition="'$(AotAnywhereLinuxMuslArmSysrootAvailable)' == ''">__AOTANYWHERE_LINUX_MUSL_ARM_SYSROOT_AVAILABLE__</AotAnywhereLinuxMuslArmSysrootAvailable>
     <AotAnywhereWindowsCrossLinkAvailable Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == ''">__AOTANYWHERE_WINDOWS_CROSS_LINK_AVAILABLE__</AotAnywhereWindowsCrossLinkAvailable>
     <HostRuntimeIdentifier Condition="'$(HostRuntimeIdentifier)' == ''">$(NETCoreSdkPortableRuntimeIdentifier)</HostRuntimeIdentifier>
 
@@ -69,7 +70,7 @@
       PrivateAssets="all"
       IsImplicitlyDefined="true"
       GeneratePathProperty="true"
-      Condition="'$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != '' and ('$(AotAnywhereArmv7SysrootsAvailable)' == 'true' or !$(AotAnywhereLinuxSysrootId.EndsWith('-arm')))" />
+      Condition="'$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != 'ubuntu-18.04-arm' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')" />
 
     <PackageReference Include="StuDev.AotAnywhere.Windows.CrossLink"
       Version="$(AotAnywhereWindowsCrossLinkVersion)"

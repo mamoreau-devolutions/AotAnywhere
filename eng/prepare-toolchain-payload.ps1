@@ -34,6 +34,48 @@ function Copy-ResolvedFile {
     Copy-Item -LiteralPath $item.FullName -Destination $Destination -Force
 }
 
+function Remove-NuGetIncompatibleSysrootFiles {
+    param(
+        [Parameter(Mandatory)]
+        [string] $SysrootDirectory
+    )
+
+    # Linux exposes these legacy netfilter target headers alongside their
+    # lowercase replacements. NuGet package paths are case-insensitive, so
+    # keeping both would produce a package that cannot be restored on Windows.
+    $legacyCaseAliases = @(
+        'usr/include/linux/netfilter/xt_CONNMARK.h',
+        'usr/include/linux/netfilter/xt_DSCP.h',
+        'usr/include/linux/netfilter/xt_MARK.h',
+        'usr/include/linux/netfilter/xt_RATEEST.h',
+        'usr/include/linux/netfilter/xt_TCPMSS.h',
+        'usr/include/linux/netfilter_ipv4/ipt_ECN.h',
+        'usr/include/linux/netfilter_ipv4/ipt_TTL.h',
+        'usr/include/linux/netfilter_ipv6/ip6t_HL.h'
+    )
+
+    foreach ($relativePath in $legacyCaseAliases) {
+        $path = Join-Path $SysrootDirectory $relativePath
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            Remove-Item -LiteralPath $path -Force
+        }
+    }
+
+    $filesByCaseInsensitivePath = [System.Collections.Generic.Dictionary[string, string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    $collisions = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in Get-ChildItem -LiteralPath $SysrootDirectory -File -Recurse) {
+        $relativePath = [System.IO.Path]::GetRelativePath($SysrootDirectory, $file.FullName).Replace('\', '/')
+        if (-not $filesByCaseInsensitivePath.TryAdd($relativePath, $relativePath)) {
+            $collisions.Add("$($filesByCaseInsensitivePath[$relativePath]) <-> $relativePath")
+        }
+    }
+
+    if ($collisions.Count -ne 0) {
+        throw "Sysroot contains case-colliding paths that NuGet cannot package: $($collisions -join '; ')."
+    }
+}
+
 if (-not (Test-Path -LiteralPath $ArchivePath -PathType Leaf)) {
     throw "Artifact does not exist: $ArchivePath"
 }
@@ -78,6 +120,7 @@ try {
         New-Item -ItemType Directory -Force -Path $sysrootDestination | Out-Null
         Get-ChildItem -LiteralPath $sysrootSource.FullName -Force |
             ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $sysrootDestination -Recurse }
+        Remove-NuGetIncompatibleSysrootFiles -SysrootDirectory $sysrootDestination
         return
     }
 

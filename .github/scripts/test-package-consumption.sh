@@ -12,7 +12,23 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 host_rid="${1:-$(dotnet --info | sed -n 's/^ *RID: *//p' | head -1)}"
+target_rid="${2:-linux-x64}"
 [ "$host_rid" = "linux-x64" ] || { echo "Package consumption fixture supports linux-x64 only; got $host_rid"; exit 1; }
+
+case "$target_rid" in
+  linux-x64)
+    sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64"
+    target_framework="net8.0"
+    ;;
+  linux-musl-arm)
+    sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm"
+    target_framework="net9.0"
+    ;;
+  *)
+    echo "Package consumption fixture does not support target RID: $target_rid"
+    exit 1
+    ;;
+esac
 
 work="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/aotanywhere-consumption"
 rm -rf "$work"
@@ -20,7 +36,6 @@ mkdir -p "$work/feed"
 
 version="0.0.1-ci"
 toolset_id="StuDev.AotAnywhere.Clang.Toolsets.$host_rid"
-sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64"
 toolset_version="$(pwsh -NoProfile -Command "(Get-Content '$repo_root/eng/toolchain-artifacts.json' -Raw | ConvertFrom-Json).clangToolsets | Where-Object packageId -eq '$toolset_id' | Select-Object -ExpandProperty packageVersion")"
 sysroot_version="$(pwsh -NoProfile -Command "(Get-Content '$repo_root/eng/toolchain-artifacts.json' -Raw | ConvertFrom-Json).linuxSysroots | Where-Object packageId -eq '$sysroot_id' | Select-Object -ExpandProperty packageVersion")"
 
@@ -55,7 +70,7 @@ EOF
 $csproj_body
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>$target_framework</TargetFramework>
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
@@ -66,7 +81,7 @@ EOF
 publish() {
   local dir="$1" log="$2"
   NUGET_PACKAGES="$dir/nuget-cache" dotnet publish "$dir/Consumer.csproj" \
-    -r linux-x64 -c Release -o "$dir/out" 2>&1 | tee "$log"
+    -r "$target_rid" -c Release -o "$dir/out" 2>&1 | tee "$log"
 }
 
 failures=0

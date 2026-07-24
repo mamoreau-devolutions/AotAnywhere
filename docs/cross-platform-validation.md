@@ -13,8 +13,10 @@ The clean-consumer job proves the important restore behavior:
 3. A bare package reference plus explicit toolset and sysroot references links
    successfully.
 
-ARMv7 validation is deferred until CBake publishes its Ubuntu 18.04 and Alpine
-3.17 ARMv7 sysroots. Non-Windows Windows-target validation is deferred until a
-versioned MSVC/Windows SDK cross-link bundle is available. The release workflow
-must not claim a complete host-by-target matrix before those immutable inputs are
-published.
+The clean-consumer job packages the released Alpine ARMv7 sysroot, then verifies
+first-restore cross-compilation for `linux-musl-arm`. That target requires .NET
+9 or later. The CBake Ubuntu 18.04 ARM sysroot remains incompatible with .NET 9
+Native AOT because its glibc 2.27 baseline lacks the required time64 ABI.
+
+Non-Windows Windows-target validation remains deferred until a versioned
+MSVC/Windows SDK cross-link bundle is available.

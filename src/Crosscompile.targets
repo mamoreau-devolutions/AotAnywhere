@@ -42,7 +42,7 @@
       PrivateAssets="all"
       IsImplicitlyDefined="true"
       GeneratePathProperty="true"
-      Condition="'$(UseExternalClang)' == 'false' and '$(_AotAnywhereToolchainRefsViaSdk)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != '' and ('$(AotAnywhereArmv7SysrootsAvailable)' == 'true' or !$(AotAnywhereLinuxSysrootId.EndsWith('-arm')))" />
+      Condition="'$(UseExternalClang)' == 'false' and '$(_AotAnywhereToolchainRefsViaSdk)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != 'ubuntu-18.04-arm' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')" />
     <PackageReference Include="StuDev.AotAnywhere.Windows.CrossLink"
       Version="$(AotAnywhereWindowsCrossLinkVersion)"
       PrivateAssets="all"
@@ -148,18 +148,18 @@
            Text="AotAnywhere: Windows x86 is no longer a supported build host for Clang cross-compilation. Use a Windows x64 or Windows ARM64 host." />
 
     <PropertyGroup Condition="$(HostRuntimeIdentifier.StartsWith('win-'))">
-      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-x64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_win_x64)/tools</AotAnywhereClangToolsetPath>
-      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-arm64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_win_arm64)/tools</AotAnywhereClangToolsetPath>
+      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-x64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_win-x64)/tools</AotAnywhereClangToolsetPath>
+      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-arm64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_win-arm64)/tools</AotAnywhereClangToolsetPath>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(HostRuntimeIdentifier.StartsWith('osx-'))">
-      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-x64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_osx_x64)/tools</AotAnywhereClangToolsetPath>
-      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-arm64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_osx_arm64)/tools</AotAnywhereClangToolsetPath>
+      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-x64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_osx-x64)/tools</AotAnywhereClangToolsetPath>
+      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-arm64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_osx-arm64)/tools</AotAnywhereClangToolsetPath>
     </PropertyGroup>
 
     <PropertyGroup Condition="$(HostRuntimeIdentifier.StartsWith('linux-'))">
-      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-x64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_linux_x64)/tools</AotAnywhereClangToolsetPath>
-      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-arm64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_linux_arm64)/tools</AotAnywhereClangToolsetPath>
+      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-x64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_linux-x64)/tools</AotAnywhereClangToolsetPath>
+      <AotAnywhereClangToolsetPath Condition="$(HostRuntimeIdentifier.EndsWith('-arm64'))">$(PkgStuDev_AotAnywhere_Clang_Toolsets_linux-arm64)/tools</AotAnywhereClangToolsetPath>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(UseExternalClang)' == 'false' and !Exists('$(AotAnywhereClangToolsetPath)') and '$(NuGetPackageRoot)' != ''">
@@ -194,22 +194,22 @@
           Condition="$(RuntimeIdentifier.StartsWith('linux'))">
 
     <PropertyGroup>
-      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-amd64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu_18_04_amd64)/tools/sysroot</AotAnywhereLinuxSysroot>
-      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu_18_04_arm64)/tools/sysroot</AotAnywhereLinuxSysroot>
-      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu_18_04_arm)/tools/sysroot</AotAnywhereLinuxSysroot>
-      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-amd64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine_3_17_amd64)/tools/sysroot</AotAnywhereLinuxSysroot>
-      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-arm64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine_3_17_arm64)/tools/sysroot</AotAnywhereLinuxSysroot>
-      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-arm'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine_3_17_arm)/tools/sysroot</AotAnywhereLinuxSysroot>
+      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-amd64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-18_04-amd64)/tools/sysroot</AotAnywhereLinuxSysroot>
+      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-18_04-arm64)/tools/sysroot</AotAnywhereLinuxSysroot>
+      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm' and '$(AotAnywhereLinuxArmSysrootAvailable)' == 'true'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-18_04-arm)/tools/sysroot</AotAnywhereLinuxSysroot>
+      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-amd64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine-3_17-amd64)/tools/sysroot</AotAnywhereLinuxSysroot>
+      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-arm64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine-3_17-arm64)/tools/sysroot</AotAnywhereLinuxSysroot>
+      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-arm' and '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine-3_17-arm)/tools/sysroot</AotAnywhereLinuxSysroot>
 
-      <_AotAnywhereLinuxSysrootCacheDir Condition="'$(AotAnywhereArmv7SysrootsAvailable)' == 'true' or !$(AotAnywhereLinuxSysrootId.EndsWith('-arm'))">$([MSBuild]::NormalizeDirectory('$(NuGetPackageRoot)', 'studev.aotanywhere.linux.sysroots.$(AotAnywhereLinuxSysrootId)', '$(AotAnywhereLinuxSysrootVersion)', 'tools', 'sysroot'))</_AotAnywhereLinuxSysrootCacheDir>
+      <_AotAnywhereLinuxSysrootCacheDir Condition="'$(AotAnywhereLinuxSysrootId)' != 'ubuntu-18.04-arm' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')">$([MSBuild]::NormalizeDirectory('$(NuGetPackageRoot)', 'studev.aotanywhere.linux.sysroots.$(AotAnywhereLinuxSysrootId)', '$(AotAnywhereLinuxSysrootVersion)', 'tools', 'sysroot'))</_AotAnywhereLinuxSysrootCacheDir>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and Exists('$(_AotAnywhereLinuxSysrootCacheDir)')">$(_AotAnywhereLinuxSysrootCacheDir)</AotAnywhereLinuxSysroot>
       <AotAnywhereLinuxGccTarget Condition="'$(AotAnywhereLinuxGccTarget)' == ''">$(TargetTriple)</AotAnywhereLinuxGccTarget>
       <AotAnywhereLinuxGccTarget Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">armv7-alpine-linux-musleabihf</AotAnywhereLinuxGccTarget>
     </PropertyGroup>
 
-    <Error Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(AotAnywhereArmv7SysrootsAvailable)' != 'true' and $(AotAnywhereLinuxSysrootId.EndsWith('-arm'))"
-           Text="AotAnywhere: ARMv7 Linux sysroots are deferred until CBake publishes the Ubuntu 18.04 and Alpine 3.17 ARMv7 artifacts. Set AotAnywhereLinuxSysroot to a compatible external sysroot to build this target now." />
-    <Error Condition="'$(AotAnywhereLinuxSysroot)' == '' and ('$(AotAnywhereArmv7SysrootsAvailable)' == 'true' or !$(AotAnywhereLinuxSysrootId.EndsWith('-arm')))"
+    <Error Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm' and '$(AotAnywhereLinuxArmSysrootAvailable)' != 'true'"
+           Text="AotAnywhere: linux-arm requires an ARM glibc sysroot with the .NET 9 time64 ABI. CBake's published Ubuntu 18.04 ARM sysroot uses glibc 2.27 and is not compatible. Set AotAnywhereLinuxSysroot to a compatible external sysroot to build this target now." />
+    <Error Condition="'$(AotAnywhereLinuxSysroot)' == '' and !('$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm' and '$(AotAnywhereLinuxArmSysrootAvailable)' != 'true')"
            Text="AotAnywhere: no Linux sysroot is configured for '$(RuntimeIdentifier)'. Use the MSBuild SDK reference to restore 'StuDev.AotAnywhere.Linux.Sysroots.$(AotAnywhereLinuxSysrootId)', add that PackageReference explicitly, or set AotAnywhereLinuxSysroot to a compatible sysroot." />
     <Error Condition="!Exists('$(AotAnywhereLinuxSysroot)/usr')"
            Text="AotAnywhere: Linux sysroot '$(AotAnywhereLinuxSysroot)' is missing its usr directory." />
