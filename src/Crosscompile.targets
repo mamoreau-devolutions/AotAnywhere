@@ -204,6 +204,10 @@
       <_AotAnywhereLinuxSysrootCacheDir Condition="'$(AotAnywhereLinuxSysrootId)' != 'ubuntu-18.04-arm' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')">$([MSBuild]::NormalizeDirectory('$(NuGetPackageRoot)', 'studev.aotanywhere.linux.sysroots.$(AotAnywhereLinuxSysrootId)', '$(AotAnywhereLinuxSysrootVersion)', 'tools', 'sysroot'))</_AotAnywhereLinuxSysrootCacheDir>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and Exists('$(_AotAnywhereLinuxSysrootCacheDir)')">$(_AotAnywhereLinuxSysrootCacheDir)</AotAnywhereLinuxSysroot>
       <AotAnywhereLinuxGccTarget Condition="'$(AotAnywhereLinuxGccTarget)' == ''">$(TargetTriple)</AotAnywhereLinuxGccTarget>
+      <!-- Alpine's GCC layouts include the distribution name, unlike the Clang
+           target triples used to link each musl RID. -->
+      <AotAnywhereLinuxGccTarget Condition="'$(RuntimeIdentifier)' == 'linux-musl-x64'">x86_64-alpine-linux-musl</AotAnywhereLinuxGccTarget>
+      <AotAnywhereLinuxGccTarget Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm64'">aarch64-alpine-linux-musl</AotAnywhereLinuxGccTarget>
       <AotAnywhereLinuxGccTarget Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">armv7-alpine-linux-musleabihf</AotAnywhereLinuxGccTarget>
     </PropertyGroup>
 

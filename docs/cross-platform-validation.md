@@ -1,9 +1,16 @@
 # Cross-platform validation
 
-The per-PR workflow validates the MSBuild target logic, performs a clean-cache
-SDK consumption publish with locally packed manifest-pinned Clang and Ubuntu
-18.04 sysroot content packages, and publishes/runs a Linux x64 external-Clang
-smoke test.
+The per-PR workflow validates the MSBuild target logic, then performs
+clean-cache SDK consumption publishes with locally packed manifest-pinned Clang
+and sysroot content packages for every released Linux target:
+
+- `linux-x64` runs directly and `linux-musl-x64` runs in a native-architecture
+  Alpine container.
+- `linux-arm64`, `linux-musl-arm64`, and `linux-musl-arm` run in Docker with
+  QEMU emulation.
+
+Each target checks the restored package graph, ELF architecture, managed-strip
+output and debuglink sidecar, and execution of the resulting binary.
 
 The clean-consumer job proves the important restore behavior:
 
@@ -13,10 +20,9 @@ The clean-consumer job proves the important restore behavior:
 3. A bare package reference plus explicit toolset and sysroot references links
    successfully.
 
-The clean-consumer job packages the released Alpine ARMv7 sysroot, then verifies
-first-restore cross-compilation for `linux-musl-arm`. That target requires .NET
-9 or later. The CBake Ubuntu 18.04 ARM sysroot remains incompatible with .NET 9
-Native AOT because its glibc 2.27 baseline lacks the required time64 ABI.
+`linux-musl-arm` requires .NET 9 or later. The CBake Ubuntu 18.04 ARM sysroot
+remains incompatible with .NET 9 Native AOT because its glibc 2.27 baseline
+lacks the required time64 ABI.
 
 Non-Windows Windows-target validation remains deferred until a versioned
 MSVC/Windows SDK cross-link bundle is available.

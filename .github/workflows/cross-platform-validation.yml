@@ -26,7 +26,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target-rid: [linux-x64, linux-musl-arm]
+        include:
+          - target-rid: linux-x64
+            qemu-platforms: ""
+          - target-rid: linux-arm64
+            qemu-platforms: arm64
+          - target-rid: linux-musl-x64
+            qemu-platforms: ""
+          - target-rid: linux-musl-arm64
+            qemu-platforms: arm64
+          - target-rid: linux-musl-arm
+            qemu-platforms: arm
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -34,8 +44,13 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
-      - name: Test the restored Clang/sysroot package graph
-        run: bash .github/scripts/test-package-consumption.sh linux-x64 ${{ matrix.target-rid }}
+      - name: Enable target architecture emulation
+        if: matrix.qemu-platforms != ''
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: ${{ matrix.qemu-platforms }}
+      - name: Test restored packages and published binary
+        run: bash .github/scripts/test-package-consumption.sh linux-x64 ${{ matrix.target-rid }} true
 
   linux-native-smoke:
     runs-on: depot-ubuntu-latest

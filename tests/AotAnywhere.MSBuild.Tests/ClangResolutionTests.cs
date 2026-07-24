@@ -94,6 +94,38 @@ public class ClangResolutionTests
     }
 
     [Test]
+    [Arguments("linux-musl-x64", "x86_64-alpine-linux-musl")]
+    [Arguments("linux-musl-arm64", "aarch64-alpine-linux-musl")]
+    public async Task LinuxMuslSysrootsUseCbakeGccTargetLayouts(string runtimeIdentifier, string gccTarget)
+    {
+        var root = Path.Combine(Path.GetTempPath(), "aotanywhere-musl-sysroot-" + Guid.NewGuid());
+        var gccLibrary = Path.Combine(root, "usr", "lib", "gcc", gccTarget, "13.2.0");
+        try
+        {
+            Directory.CreateDirectory(gccLibrary);
+
+            var result = Harness.Run("ResolveLinuxToolchainForTests", new Dictionary<string, string>
+            {
+                ["RuntimeIdentifier"] = runtimeIdentifier,
+                ["HostRuntimeIdentifier"] = "linux-x64",
+                ["UseExternalClang"] = "true",
+                ["AotAnywhereLinuxSysroot"] = root,
+            });
+
+            await Assert.That(result.Success)
+                .IsTrue().Because($"SetLinuxSysroot failed: {result.ErrorText}");
+            await Assert.That(result.Prop("AotAnywhereLinuxGccTarget"))
+                .IsEqualTo(gccTarget);
+            await Assert.That(result.Prop("AotAnywhereLinuxGccLibraryDirectory"))
+                .IsEqualTo(gccLibrary);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task PublishedMuslArmSysrootResolvesFromTheNuGetPackageProperty()
     {
         var root = Path.Combine(Path.GetTempPath(), "aotanywhere-musl-arm-sysroot-" + Guid.NewGuid());

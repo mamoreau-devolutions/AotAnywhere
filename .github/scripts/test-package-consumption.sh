@@ -13,16 +13,44 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
 host_rid="${1:-$(dotnet --info | sed -n 's/^ *RID: *//p' | head -1)}"
 target_rid="${2:-linux-x64}"
+run_published_binary="${3:-false}"
 [ "$host_rid" = "linux-x64" ] || { echo "Package consumption fixture supports linux-x64 only; got $host_rid"; exit 1; }
 
 case "$target_rid" in
   linux-x64)
     sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64"
     target_framework="net8.0"
+    expected_machine="Advanced Micro Devices X86-64"
+    container_image=""
+    container_platform=""
+    ;;
+  linux-arm64)
+    sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm64"
+    target_framework="net8.0"
+    expected_machine="AArch64"
+    container_image="debian:bookworm-slim"
+    container_platform="linux/arm64"
+    ;;
+  linux-musl-x64)
+    sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64"
+    target_framework="net8.0"
+    expected_machine="Advanced Micro Devices X86-64"
+    container_image="alpine:3.21"
+    container_platform="linux/amd64"
+    ;;
+  linux-musl-arm64)
+    sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64"
+    target_framework="net8.0"
+    expected_machine="AArch64"
+    container_image="alpine:3.21"
+    container_platform="linux/arm64"
     ;;
   linux-musl-arm)
     sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm"
     target_framework="net9.0"
+    expected_machine="ARM"
+    container_image="alpine:3.21"
+    container_platform="linux/arm/v7"
     ;;
   *)
     echo "Package consumption fixture does not support target RID: $target_rid"
@@ -84,6 +112,30 @@ publish() {
     -r "$target_rid" -c Release -o "$dir/out" 2>&1 | tee "$log"
 }
 
+validate_published_binary() {
+  local binary="$work/sdk/out/Consumer"
+  local sections="$work/sections.txt"
+
+  [ -f "$binary" ] || { echo "sdk: published binary is missing"; return 1; }
+  readelf -h "$binary" | grep -F "Machine:                           $expected_machine" ||
+    { echo "sdk: unexpected ELF architecture: $(readelf -h "$binary" | grep Machine)"; return 1; }
+  [ -f "$binary.dbg" ] || { echo "sdk: stripped symbol sidecar is missing"; return 1; }
+  readelf -S "$binary" > "$sections"
+  grep -q '\.gnu_debuglink' "$sections" ||
+    { echo "sdk: stripped binary is missing .gnu_debuglink"; return 1; }
+  if grep -qE '\.symtab|\.debug_info' "$sections"; then
+    echo "sdk: stripped binary retains symbol or debug sections"
+    return 1
+  fi
+
+  if [ -z "$container_image" ]; then
+    "$binary"
+  else
+    docker run --rm --platform "$container_platform" \
+      -v "$work/sdk/out:/out:ro" -w /out "$container_image" ./Consumer
+  fi
+}
+
 failures=0
 
 echo
@@ -97,6 +149,17 @@ if publish "$work/sdk" "$work/sdk.log" &&
 else
   echo "sdk: publish failed or the restore graph omitted a required content package"
   failures=$((failures + 1))
+fi
+
+if [ "$run_published_binary" = "true" ]; then
+  echo
+  echo "==> Case: SDK element runtime validation"
+  if validate_published_binary; then
+    echo "sdk: architecture, strip, and execution checks passed"
+  else
+    echo "sdk: architecture, strip, or execution check failed"
+    failures=$((failures + 1))
+  fi
 fi
 
 echo
