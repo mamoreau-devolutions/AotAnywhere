@@ -16,6 +16,24 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+function Copy-ResolvedFile {
+    param(
+        [Parameter(Mandatory)]
+        [string] $Source,
+
+        [Parameter(Mandatory)]
+        [string] $Destination
+    )
+
+    $item = Get-Item -LiteralPath $Source
+    $resolved = $item.ResolveLinkTarget($true)
+    if ($null -ne $resolved) {
+        $item = $resolved
+    }
+
+    Copy-Item -LiteralPath $item.FullName -Destination $Destination -Force
+}
+
 if (-not (Test-Path -LiteralPath $ArchivePath -PathType Leaf)) {
     throw "Artifact does not exist: $ArchivePath"
 }
@@ -84,7 +102,7 @@ try {
             (Join-Path $source.FullName "bin/$tool.exe")
         )) {
             if (Test-Path -LiteralPath $candidate -PathType Leaf) {
-                Copy-Item -LiteralPath $candidate -Destination $binDestination
+                Copy-ResolvedFile -Source $candidate -Destination (Join-Path $binDestination (Split-Path $candidate -Leaf))
                 break
             }
         }
@@ -120,7 +138,7 @@ try {
                 $_.Name -match '\.dll$|\.dylib$|\.so(\.[0-9.]+)?$'
             } |
             ForEach-Object {
-                Copy-Item -LiteralPath $_.FullName -Destination $libraryDestination
+                Copy-ResolvedFile -Source $_.FullName -Destination (Join-Path $libraryDestination $_.Name)
             }
     }
 }
