@@ -41,10 +41,10 @@
     <AotAnywhereLinuxSysrootId />
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-x64'">ubuntu-18.04-amd64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm64'">ubuntu-18.04-arm64</AotAnywhereLinuxSysrootId>
-    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm'">ubuntu-18.04-armv7</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm'">ubuntu-18.04-arm</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-x64'">alpine-3.17-amd64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm64'">alpine-3.17-arm64</AotAnywhereLinuxSysrootId>
-    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">alpine-3.17-armv7</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">alpine-3.17-arm</AotAnywhereLinuxSysrootId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -69,7 +69,7 @@
       PrivateAssets="all"
       IsImplicitlyDefined="true"
       GeneratePathProperty="true"
-      Condition="'$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != '' and ('$(AotAnywhereArmv7SysrootsAvailable)' == 'true' or !$(AotAnywhereLinuxSysrootId.EndsWith('-armv7')))" />
+      Condition="'$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != '' and ('$(AotAnywhereArmv7SysrootsAvailable)' == 'true' or !$(AotAnywhereLinuxSysrootId.EndsWith('-arm')))" />
 
     <PackageReference Include="StuDev.AotAnywhere.Windows.CrossLink"
       Version="$(AotAnywhereWindowsCrossLinkVersion)"

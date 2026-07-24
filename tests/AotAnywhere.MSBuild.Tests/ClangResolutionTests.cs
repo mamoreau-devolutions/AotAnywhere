@@ -62,6 +62,38 @@ public class ClangResolutionTests
     }
 
     [Test]
+    public async Task LinuxMuslArmSysrootUsesCbakeGccTargetLayout()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "aotanywhere-musl-arm-sysroot-" + Guid.NewGuid());
+        var gccLibrary = Path.Combine(root, "usr", "lib", "gcc", "armv7-alpine-linux-musleabihf", "13.2.0");
+        try
+        {
+            Directory.CreateDirectory(gccLibrary);
+
+            var result = Harness.Run("ResolveLinuxToolchainForTests", new Dictionary<string, string>
+            {
+                ["RuntimeIdentifier"] = "linux-musl-arm",
+                ["HostRuntimeIdentifier"] = "linux-x64",
+                ["UseExternalClang"] = "true",
+                ["AotAnywhereLinuxSysroot"] = root,
+            });
+
+            await Assert.That(result.Success)
+                .IsTrue().Because($"SetLinuxSysroot failed: {result.ErrorText}");
+            await Assert.That(result.Prop("AotAnywhereLinuxSysrootId"))
+                .IsEqualTo("alpine-3.17-arm");
+            await Assert.That(result.Prop("AotAnywhereLinuxGccTarget"))
+                .IsEqualTo("armv7-alpine-linux-musleabihf");
+            await Assert.That(result.Prop("AotAnywhereLinuxGccLibraryDirectory"))
+                .IsEqualTo(gccLibrary);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public async Task MissingRestoredToolsetHasActionableError()
     {
         var result = Harness.Run("SetPathToClang", new Dictionary<string, string>

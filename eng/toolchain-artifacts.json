@@ -76,13 +76,13 @@
   ],
   "deferredLinuxSysroots": [
     {
-      "id": "ubuntu-18.04-armv7",
-      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-armv7",
+      "id": "ubuntu-18.04-arm",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm",
       "reason": "Requires the CBake ARMv7 Ubuntu 18.04 sysroot release."
     },
     {
-      "id": "alpine-3.17-armv7",
-      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-armv7",
+      "id": "alpine-3.17-arm",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm",
       "reason": "Requires the CBake ARMv7 Alpine 3.17 sysroot release."
     }
   ],
