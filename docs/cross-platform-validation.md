@@ -6,7 +6,7 @@ and sysroot content packages for every released Linux target:
 
 - `linux-x64` runs directly and `linux-musl-x64` runs in a native-architecture
   Alpine container.
-- `linux-arm64`, `linux-musl-arm64`, and `linux-musl-arm` run in Docker with
+- `linux-arm64`, `linux-arm`, `linux-musl-arm64`, and `linux-musl-arm` run in Docker with
   QEMU emulation.
 
 Each target checks the restored package graph, ELF architecture, managed-strip
@@ -20,9 +20,9 @@ The clean-consumer job proves the important restore behavior:
 3. A bare package reference plus explicit toolset and sysroot references links
    successfully.
 
-`linux-musl-arm` requires .NET 9 or later. The CBake Ubuntu 18.04 ARM sysroot
-remains incompatible with .NET 9 Native AOT because its glibc 2.27 baseline
-lacks the required time64 ABI.
+`linux-arm` and `linux-musl-arm` require .NET 9 or later. `linux-arm` uses
+CBake's Ubuntu 22.04 ARM sysroot, whose glibc 2.35 baseline provides the time64
+ABI required by .NET 9 Native AOT.
 
 Non-Windows Windows-target validation remains deferred until a versioned
 MSVC/Windows SDK cross-link bundle is available.

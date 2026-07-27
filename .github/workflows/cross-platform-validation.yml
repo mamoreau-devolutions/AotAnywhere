@@ -31,6 +31,8 @@ jobs:
             qemu-platforms: ""
           - target-rid: linux-arm64
             qemu-platforms: arm64
+          - target-rid: linux-arm
+            qemu-platforms: arm
           - target-rid: linux-musl-x64
             qemu-platforms: ""
           - target-rid: linux-musl-arm64
@@ -61,7 +63,7 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Install the external LLVM smoke toolchain
-        run: sudo apt-get update && sudo apt-get install -y clang lld
+        run: sudo apt-get update && sudo apt-get install -y clang lld llvm
       - name: Build the link task
         run: dotnet build src/tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj -c Release
       - name: Publish and launch with external Clang

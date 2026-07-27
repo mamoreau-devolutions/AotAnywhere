@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang lld
+          sudo apt-get install -y clang lld llvm
           curl -sSfL -o "$RUNNER_TEMP/upx.tar.xz" https://github.com/upx/upx/releases/download/v5.0.2/upx-5.0.2-amd64_linux.tar.xz
           tar -xJf "$RUNNER_TEMP/upx.tar.xz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/upx-5.0.2-amd64_linux" >> "$GITHUB_PATH"

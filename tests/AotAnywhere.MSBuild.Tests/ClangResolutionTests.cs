@@ -182,18 +182,44 @@ public class ClangResolutionTests
     }
 
     [Test]
-    public async Task IncompatibleArmGlibcSysrootHasActionableError()
+    public async Task PublishedArmGlibcSysrootResolvesFromTheNuGetPackageProperty()
     {
-        var result = Harness.Run("ResolveLinuxToolchainForTests", new Dictionary<string, string>
+        var root = Path.Combine(Path.GetTempPath(), "aotanywhere-arm-sysroot-" + Guid.NewGuid());
+        var toolset = Path.Combine(root, "clang-toolset");
+        var sysrootPackage = Path.Combine(root, "sysroot-package");
+        var gccLibrary = Path.Combine(
+            sysrootPackage,
+            "tools",
+            "sysroot",
+            "usr",
+            "lib",
+            "gcc",
+            "arm-linux-gnueabihf",
+            "11.0.0");
+        try
         {
-            ["RuntimeIdentifier"] = "linux-arm",
-            ["HostRuntimeIdentifier"] = "linux-x64",
-            ["UseExternalClang"] = "true",
-        });
+            Directory.CreateDirectory(Path.Combine(toolset, "tools"));
+            Directory.CreateDirectory(gccLibrary);
 
-        await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.ErrorText).Contains("linux-arm requires an ARM glibc sysroot");
-        await Assert.That(result.ErrorText).Contains("AotAnywhereLinuxSysroot");
+            var result = Harness.Run("ResolveLinuxToolchainForTests", new Dictionary<string, string>
+            {
+                ["RuntimeIdentifier"] = "linux-arm",
+                ["HostRuntimeIdentifier"] = "linux-x64",
+                ["PkgStuDev_AotAnywhere_Clang_Toolsets_linux-x64"] = toolset,
+                ["PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-22_04-arm"] = sysrootPackage,
+            });
+
+            await Assert.That(result.Success)
+                .IsTrue().Because($"SetLinuxSysroot failed: {result.ErrorText}");
+            await Assert.That(result.Prop("AotAnywhereLinuxSysrootId"))
+                .IsEqualTo("ubuntu-22.04-arm");
+            await Assert.That(Path.GetFullPath(result.Prop("AotAnywhereLinuxGccLibraryDirectory")))
+                .IsEqualTo(Path.GetFullPath(gccLibrary));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
     }
 
     [Test]

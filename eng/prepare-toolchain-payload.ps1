@@ -76,6 +76,21 @@ function Remove-NuGetIncompatibleSysrootFiles {
     }
 }
 
+function Remove-UnneededSysrootMetadata {
+    param(
+        [Parameter(Mandatory)]
+        [string] $SysrootDirectory
+    )
+
+    # Systemd service metadata is never used for cross-linking. Ubuntu 22.04 ARM
+    # includes a generated unit with a literal backslash in its name, which
+    # cannot be represented as a NuGet package path on Windows.
+    $systemdMetadata = Join-Path $SysrootDirectory 'usr/lib/systemd'
+    if (Test-Path -LiteralPath $systemdMetadata -PathType Container) {
+        Remove-Item -LiteralPath $systemdMetadata -Recurse -Force
+    }
+}
+
 if (-not (Test-Path -LiteralPath $ArchivePath -PathType Leaf)) {
     throw "Artifact does not exist: $ArchivePath"
 }
@@ -118,6 +133,7 @@ try {
 
         $sysrootDestination = Join-Path $payload 'sysroot'
         New-Item -ItemType Directory -Force -Path $sysrootDestination | Out-Null
+        Remove-UnneededSysrootMetadata -SysrootDirectory $sysrootSource.FullName
         Get-ChildItem -LiteralPath $sysrootSource.FullName -Force |
             ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $sysrootDestination -Recurse }
         Remove-NuGetIncompatibleSysrootFiles -SysrootDirectory $sysrootDestination

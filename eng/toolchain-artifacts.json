@@ -48,46 +48,44 @@
     {
       "id": "ubuntu-18.04-amd64",
       "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64",
-      "packageVersion": "2026.7.24.1",
-      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.24.0/ubuntu-18.04-amd64-sysroot.tar.xz",
-      "sha256": "d2e87a8a697ec5ace3d27fe69016c106bea0396eef86aca599d37ac4f614e426"
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/ubuntu-18.04-amd64-sysroot.tar.xz",
+      "sha256": "03b4babdd4f1afc97132ee5d3fdca5c09df75d555b5c2dff79e9a13df3b2bcd4"
     },
     {
       "id": "ubuntu-18.04-arm64",
       "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm64",
-      "packageVersion": "2026.7.24.1",
-      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.24.0/ubuntu-18.04-arm64-sysroot.tar.xz",
-      "sha256": "ed209ee76fc8f53c3c607d5f2de0f05b9090132f170c63c16476e4fd9d9d44f6"
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/ubuntu-18.04-arm64-sysroot.tar.xz",
+      "sha256": "2e368ce83e358e9490798f7d5ea8e9ce870e2122a4f8fa8b584ea549a6d50742"
     },
     {
       "id": "alpine-3.17-amd64",
       "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64",
-      "packageVersion": "2026.7.24.1",
-      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.24.0/alpine-3.17-amd64-sysroot.tar.xz",
-      "sha256": "b9bda0df2d4d261532dc66bfee39cecc951d7afd1314af02a7b8e0a1e382e0d7"
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/alpine-3.17-amd64-sysroot.tar.xz",
+      "sha256": "be09ca899ecb083d9a21743abb20d8f042d120e0b6662aa81561db396dfdf814"
     },
     {
       "id": "alpine-3.17-arm64",
       "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64",
-      "packageVersion": "2026.7.24.1",
-      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.24.0/alpine-3.17-arm64-sysroot.tar.xz",
-      "sha256": "4a5fb1624a231cc9881c8edd96966247b3649503b73749832fdfb82c98374db5"
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/alpine-3.17-arm64-sysroot.tar.xz",
+      "sha256": "a9b387d09c58bbe3b52b0f98eca39cbfc2d5bae816ef33e00116ff1d900148e1"
     },
     {
       "id": "alpine-3.17-arm",
       "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm",
-      "packageVersion": "2026.7.24.1",
-      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.24.0/alpine-3.17-arm-sysroot.tar.xz",
-      "sha256": "b3eebef34ea724405ebcef7e2c87c821315bc807ce181ff2c845df6f9354a0ec"
-    }
-  ],
-  "deferredLinuxSysroots": [
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/alpine-3.17-arm-sysroot.tar.xz",
+      "sha256": "07247c51c46f793674479e08487620ea43e09decd7c0c47a247130a14e1f8cca"
+    },
     {
-      "id": "ubuntu-18.04-arm",
-      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm",
-      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.24.0/ubuntu-18.04-arm-sysroot.tar.xz",
-      "sha256": "6ab9b43ad728fdc666975c1848d185593ce24387a26a069e54b2fd0903a3d81a",
-      "reason": "CBake's Ubuntu 18.04 ARM sysroot has glibc 2.27, which lacks the time64 ABI required by .NET 9 ARM Native AOT."
+      "id": "ubuntu-22.04-arm",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-22.04-arm",
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/ubuntu-22.04-arm-sysroot.tar.xz",
+      "sha256": "e2ff26f2a0cbe847bc53899b0c09c88d91b76428205c4b31e90f95661d1e6810"
     }
   ],
   "windowsCrossLink": {

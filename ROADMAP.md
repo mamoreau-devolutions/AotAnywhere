@@ -4,12 +4,11 @@
 
 1. Publish the manifest-pinned Clang toolset packages for Linux x64/ARM64,
    Windows x64/ARM64, and macOS x64/ARM64.
-2. Publish the Ubuntu 18.04 and Alpine 3.17 CBake sysroot packages, including
-   `linux-musl-arm`, and verify their complete host-by-target matrix.
+2. Publish the Ubuntu 18.04, Ubuntu 22.04 ARM, and Alpine 3.17 CBake sysroot
+   packages, including both ARMv7 RIDs, and verify their complete
+   host-by-target matrix.
 3. Publish the versioned MSVC/Windows SDK cross-link bundle needed by
    `lld-link` on Linux and macOS hosts.
-4. Add a CBake ARM glibc sysroot with a .NET 9-compatible time64 ABI, then
-   enable `linux-arm`.
 
 ## Quality and maintenance
 

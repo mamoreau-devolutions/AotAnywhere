@@ -36,6 +36,7 @@ jobs:
               StuDev.AotAnywhere.Clang.Toolsets.osx-arm64,
               StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64,
               StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm64,
+              StuDev.AotAnywhere.Linux.Sysroots.ubuntu-22.04-arm,
               StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64,
               StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64,
               StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm

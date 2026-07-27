@@ -7,8 +7,8 @@ content package during the first restore; CMake is never invoked.
 ## Linking model
 
 - Linux links run `clang --target=<triple> --sysroot=<sysroot> -fuse-ld=lld`.
-  The packaged Ubuntu 18.04 and Alpine 3.17 sysroots provide the target CRT,
-  libc, and GCC support libraries.
+  The packaged Ubuntu 18.04 (x64/ARM64), Ubuntu 22.04 (ARMv7), and Alpine 3.17
+  sysroots provide the target CRT, libc, and GCC support libraries.
 - macOS links use Clang with `ld64.lld` against the bundled Apple `.tbd` stubs
   (or a real SDK supplied through `AotAnywhereAppleSysroot`).
 - Non-Windows hosts link Windows targets with `lld-link` and the MSVC, UCRT,

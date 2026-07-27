@@ -12,7 +12,7 @@
     <AotAnywhereLinuxSysrootId />
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-x64'">ubuntu-18.04-amd64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm64'">ubuntu-18.04-arm64</AotAnywhereLinuxSysrootId>
-    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm'">ubuntu-18.04-arm</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm'">ubuntu-22.04-arm</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-x64'">alpine-3.17-amd64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm64'">alpine-3.17-arm64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">alpine-3.17-arm</AotAnywhereLinuxSysrootId>
@@ -42,7 +42,7 @@
       PrivateAssets="all"
       IsImplicitlyDefined="true"
       GeneratePathProperty="true"
-      Condition="'$(UseExternalClang)' == 'false' and '$(_AotAnywhereToolchainRefsViaSdk)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != 'ubuntu-18.04-arm' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')" />
+      Condition="'$(UseExternalClang)' == 'false' and '$(_AotAnywhereToolchainRefsViaSdk)' != 'true' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')" />
     <PackageReference Include="StuDev.AotAnywhere.Windows.CrossLink"
       Version="$(AotAnywhereWindowsCrossLinkVersion)"
       PrivateAssets="all"
@@ -196,12 +196,12 @@
     <PropertyGroup>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-amd64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-18_04-amd64)/tools/sysroot</AotAnywhereLinuxSysroot>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-18_04-arm64)/tools/sysroot</AotAnywhereLinuxSysroot>
-      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm' and '$(AotAnywhereLinuxArmSysrootAvailable)' == 'true'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-18_04-arm)/tools/sysroot</AotAnywhereLinuxSysroot>
+      <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-22.04-arm'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_ubuntu-22_04-arm)/tools/sysroot</AotAnywhereLinuxSysroot>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-amd64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine-3_17-amd64)/tools/sysroot</AotAnywhereLinuxSysroot>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-arm64'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine-3_17-arm64)/tools/sysroot</AotAnywhereLinuxSysroot>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' == 'alpine-3.17-arm' and '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true'">$(PkgStuDev_AotAnywhere_Linux_Sysroots_alpine-3_17-arm)/tools/sysroot</AotAnywhereLinuxSysroot>
 
-      <_AotAnywhereLinuxSysrootCacheDir Condition="'$(AotAnywhereLinuxSysrootId)' != 'ubuntu-18.04-arm' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')">$([MSBuild]::NormalizeDirectory('$(NuGetPackageRoot)', 'studev.aotanywhere.linux.sysroots.$(AotAnywhereLinuxSysrootId)', '$(AotAnywhereLinuxSysrootVersion)', 'tools', 'sysroot'))</_AotAnywhereLinuxSysrootCacheDir>
+      <_AotAnywhereLinuxSysrootCacheDir Condition="'$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true'">$([MSBuild]::NormalizeDirectory('$(NuGetPackageRoot)', 'studev.aotanywhere.linux.sysroots.$(AotAnywhereLinuxSysrootId)', '$(AotAnywhereLinuxSysrootVersion)', 'tools', 'sysroot'))</_AotAnywhereLinuxSysrootCacheDir>
       <AotAnywhereLinuxSysroot Condition="'$(AotAnywhereLinuxSysroot)' == '' and Exists('$(_AotAnywhereLinuxSysrootCacheDir)')">$(_AotAnywhereLinuxSysrootCacheDir)</AotAnywhereLinuxSysroot>
       <AotAnywhereLinuxGccTarget Condition="'$(AotAnywhereLinuxGccTarget)' == ''">$(TargetTriple)</AotAnywhereLinuxGccTarget>
       <!-- Alpine's GCC layouts include the distribution name, unlike the Clang
@@ -211,9 +211,7 @@
       <AotAnywhereLinuxGccTarget Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">armv7-alpine-linux-musleabihf</AotAnywhereLinuxGccTarget>
     </PropertyGroup>
 
-    <Error Condition="'$(AotAnywhereLinuxSysroot)' == '' and '$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm' and '$(AotAnywhereLinuxArmSysrootAvailable)' != 'true'"
-           Text="AotAnywhere: linux-arm requires an ARM glibc sysroot with the .NET 9 time64 ABI. CBake's published Ubuntu 18.04 ARM sysroot uses glibc 2.27 and is not compatible. Set AotAnywhereLinuxSysroot to a compatible external sysroot to build this target now." />
-    <Error Condition="'$(AotAnywhereLinuxSysroot)' == '' and !('$(AotAnywhereLinuxSysrootId)' == 'ubuntu-18.04-arm' and '$(AotAnywhereLinuxArmSysrootAvailable)' != 'true')"
+    <Error Condition="'$(AotAnywhereLinuxSysroot)' == ''"
            Text="AotAnywhere: no Linux sysroot is configured for '$(RuntimeIdentifier)'. Use the MSBuild SDK reference to restore 'StuDev.AotAnywhere.Linux.Sysroots.$(AotAnywhereLinuxSysrootId)', add that PackageReference explicitly, or set AotAnywhereLinuxSysroot to a compatible sysroot." />
     <Error Condition="!Exists('$(AotAnywhereLinuxSysroot)/usr')"
            Text="AotAnywhere: Linux sysroot '$(AotAnywhereLinuxSysroot)' is missing its usr directory." />

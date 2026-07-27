@@ -73,16 +73,16 @@ managed symbol-strip implementation.
 
 | Target | RIDs | Notes |
 | --- | --- | --- |
-| **Linux** | `linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64`, `linux-musl-arm` | Ubuntu 18.04 glibc and Alpine 3.17 musl sysroots. `linux-musl-arm` requires `net9.0`+. |
-| **Linux glibc (deferred)** | `linux-arm` | CBake's Ubuntu 18.04 ARM sysroot has glibc 2.27, below the .NET 9 ARM Native AOT time64 ABI baseline. |
+| **Linux** | `linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64` | Ubuntu 18.04 glibc and Alpine 3.17 musl sysroots. |
+| **Linux ARMv7** | `linux-arm`, `linux-musl-arm` | Ubuntu 22.04 glibc and Alpine 3.17 musl sysroots. Both require `net9.0`+. |
 | **macOS** | `osx-x64`, `osx-arm64` | Links against bundled Apple linker stubs. See [macOS targets](docs/macos-targets.md). |
 | **Windows** | `win-x64`, `win-arm64` | Native Windows hosts use MSVC. Linux/macOS cross-links use LLD once the versioned MSVC/Windows SDK cross-link package is published. See [Windows targets](docs/windows-targets.md). |
 
 ## Things to be aware of
 
-- **ARMv7 musl requires .NET 9 or later.** `linux-musl-arm` uses the published
-  CBake Alpine 3.17 sysroot. `linux-arm` remains deferred until CBake provides
-  an ARM glibc sysroot with the .NET 9 time64 ABI baseline.
+- **ARMv7 targets require .NET 9 or later.** `linux-arm` uses the published
+  CBake Ubuntu 22.04 sysroot with glibc 2.35, while `linux-musl-arm` uses the
+  Alpine 3.17 sysroot.
 
 - **macOS binaries need signing before you distribute them.** Out of the box the
   output has an ad-hoc signature for local execution. To hand it to other people
@@ -149,7 +149,7 @@ tool-packaging extensibility point
 <PropertyGroup>
   <PackAsTool>true</PackAsTool>
   <PublishAot>true</PublishAot>
-  <ToolPackageRuntimeIdentifiers>linux-x64;linux-arm64;linux-musl-x64;linux-musl-arm64;linux-musl-arm;osx-x64;osx-arm64</ToolPackageRuntimeIdentifiers>
+  <ToolPackageRuntimeIdentifiers>linux-x64;linux-arm64;linux-arm;linux-musl-x64;linux-musl-arm64;linux-musl-arm;osx-x64;osx-arm64</ToolPackageRuntimeIdentifiers>
 </PropertyGroup>
 ```
 
@@ -162,7 +162,7 @@ Things to know:
 - **Requires a .NET 11 SDK** with the extensibility point; on older SDKs the
   hook is inert and the SDK's own host-capability rules apply.
 - Include Windows target RIDs after publishing the MSVC/Windows SDK cross-link
-  package, and `linux-arm` after CBake publishes a compatible ARM glibc sysroot.
+  package.
 - Set `AotAnywhereMultiRidToolPackaging=false` to opt out and restore the
   SDK's default host-capability selection.
 

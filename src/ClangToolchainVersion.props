@@ -6,9 +6,8 @@
        LLVM development distribution). -->
   <PropertyGroup>
     <AotAnywhereClangToolsetVersion Condition="'$(AotAnywhereClangToolsetVersion)' == ''">22.1.4.1</AotAnywhereClangToolsetVersion>
-    <AotAnywhereLinuxSysrootVersion Condition="'$(AotAnywhereLinuxSysrootVersion)' == ''">2026.7.24.1</AotAnywhereLinuxSysrootVersion>
+    <AotAnywhereLinuxSysrootVersion Condition="'$(AotAnywhereLinuxSysrootVersion)' == ''">2026.7.27.1</AotAnywhereLinuxSysrootVersion>
     <AotAnywhereWindowsCrossLinkVersion Condition="'$(AotAnywhereWindowsCrossLinkVersion)' == ''">2026.2.0.1</AotAnywhereWindowsCrossLinkVersion>
-    <AotAnywhereLinuxArmSysrootAvailable Condition="'$(AotAnywhereLinuxArmSysrootAvailable)' == ''">false</AotAnywhereLinuxArmSysrootAvailable>
     <AotAnywhereLinuxMuslArmSysrootAvailable Condition="'$(AotAnywhereLinuxMuslArmSysrootAvailable)' == ''">true</AotAnywhereLinuxMuslArmSysrootAvailable>
     <AotAnywhereWindowsCrossLinkAvailable Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == ''">false</AotAnywhereWindowsCrossLinkAvailable>
   </PropertyGroup>

@@ -31,6 +31,13 @@ case "$target_rid" in
     container_image="debian:bookworm-slim"
     container_platform="linux/arm64"
     ;;
+  linux-arm)
+    sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.ubuntu-22.04-arm"
+    target_framework="net9.0"
+    expected_machine="ARM"
+    container_image="debian:bookworm-slim"
+    container_platform="linux/arm/v7"
+    ;;
   linux-musl-x64)
     sysroot_id="StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64"
     target_framework="net8.0"

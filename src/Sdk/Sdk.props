@@ -30,7 +30,6 @@
     <AotAnywhereClangToolsetVersion Condition="'$(AotAnywhereClangToolsetVersion)' == ''">__AOTANYWHERE_CLANG_TOOLSET_VERSION__</AotAnywhereClangToolsetVersion>
     <AotAnywhereLinuxSysrootVersion Condition="'$(AotAnywhereLinuxSysrootVersion)' == ''">__AOTANYWHERE_LINUX_SYSROOT_VERSION__</AotAnywhereLinuxSysrootVersion>
     <AotAnywhereWindowsCrossLinkVersion Condition="'$(AotAnywhereWindowsCrossLinkVersion)' == ''">__AOTANYWHERE_WINDOWS_CROSS_LINK_VERSION__</AotAnywhereWindowsCrossLinkVersion>
-    <AotAnywhereLinuxArmSysrootAvailable Condition="'$(AotAnywhereLinuxArmSysrootAvailable)' == ''">__AOTANYWHERE_LINUX_ARM_SYSROOT_AVAILABLE__</AotAnywhereLinuxArmSysrootAvailable>
     <AotAnywhereLinuxMuslArmSysrootAvailable Condition="'$(AotAnywhereLinuxMuslArmSysrootAvailable)' == ''">__AOTANYWHERE_LINUX_MUSL_ARM_SYSROOT_AVAILABLE__</AotAnywhereLinuxMuslArmSysrootAvailable>
     <AotAnywhereWindowsCrossLinkAvailable Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == ''">__AOTANYWHERE_WINDOWS_CROSS_LINK_AVAILABLE__</AotAnywhereWindowsCrossLinkAvailable>
     <HostRuntimeIdentifier Condition="'$(HostRuntimeIdentifier)' == ''">$(NETCoreSdkPortableRuntimeIdentifier)</HostRuntimeIdentifier>
@@ -42,7 +41,7 @@
     <AotAnywhereLinuxSysrootId />
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-x64'">ubuntu-18.04-amd64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm64'">ubuntu-18.04-arm64</AotAnywhereLinuxSysrootId>
-    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm'">ubuntu-18.04-arm</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm'">ubuntu-22.04-arm</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-x64'">alpine-3.17-amd64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm64'">alpine-3.17-arm64</AotAnywhereLinuxSysrootId>
     <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">alpine-3.17-arm</AotAnywhereLinuxSysrootId>
@@ -70,7 +69,7 @@
       PrivateAssets="all"
       IsImplicitlyDefined="true"
       GeneratePathProperty="true"
-      Condition="'$(UseExternalClang)' != 'true' and '$(AotAnywhereLinuxSysrootId)' != 'ubuntu-18.04-arm' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')" />
+      Condition="'$(UseExternalClang)' != 'true' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')" />
 
     <PackageReference Include="StuDev.AotAnywhere.Windows.CrossLink"
       Version="$(AotAnywhereWindowsCrossLinkVersion)"
