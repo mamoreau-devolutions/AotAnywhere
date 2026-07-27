@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: depot-ubuntu-latest
+          - runner: ubuntu-latest
             name: unix
             package-ids: >-
               StuDev.AotAnywhere.Clang.Toolsets.linux-x64,
@@ -39,10 +39,10 @@ jobs:
               StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64,
               StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64,
               StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm
-          - runner: depot-windows-latest
+          - runner: windows-latest
             name: windows-x64
             package-ids: StuDev.AotAnywhere.Clang.Toolsets.win-x64
-          - runner: windows-11-arm
+          - runner: windows-latest
             name: windows-arm64
             package-ids: StuDev.AotAnywhere.Clang.Toolsets.win-arm64
     runs-on: ${{ matrix.runner }}
@@ -69,7 +69,7 @@ jobs:
 
   publish-toolchain-packages:
     needs: prepare-toolchain-packages
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     environment: release
     permissions:
       id-token: write
@@ -97,7 +97,7 @@ jobs:
     # Its currently available toolset/sysroot content packages are published by
     # the prerequisite job. The non-Windows Windows cross-link bundle remains
     # absent until its immutable upstream artifact exists.
-    runs-on: depot-windows-latest
+    runs-on: windows-latest
     # Trusted publishing: NuGet/login mints a short-lived key from the OIDC
     # token instead of a long-lived nuget.org API key. contents: write is for
     # attaching the .nupkg to the GitHub release.

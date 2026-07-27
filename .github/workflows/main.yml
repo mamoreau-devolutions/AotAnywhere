@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - vm: depot-ubuntu-latest
+          - vm: ubuntu-latest
     runs-on: ${{ matrix.vm }}
     name: Build and test ${{ matrix.vm }}
     steps:
@@ -82,7 +82,7 @@ jobs:
 
   validate:
     needs: build_and_test
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     name: Try launching
     steps:
       - name: Download all artifacts

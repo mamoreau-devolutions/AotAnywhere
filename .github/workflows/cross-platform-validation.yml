@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   msbuild-logic-tests:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     name: MSBuild logic unit tests
     steps:
       - uses: actions/checkout@v7
@@ -21,7 +21,7 @@ jobs:
       - run: dotnet run --project tests/AotAnywhere.MSBuild.Tests/AotAnywhere.MSBuild.Tests.csproj -c Release
 
   package-consumption:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     name: Package consumption (${{ matrix.target-rid }})
     strategy:
       fail-fast: false
@@ -53,7 +53,7 @@ jobs:
         run: bash .github/scripts/test-package-consumption.sh linux-x64 ${{ matrix.target-rid }} true
 
   linux-native-smoke:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     name: Linux Clang smoke test
     steps:
       - uses: actions/checkout@v7
