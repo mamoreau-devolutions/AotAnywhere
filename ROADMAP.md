@@ -7,8 +7,10 @@
 2. Publish the Ubuntu 18.04, Ubuntu 22.04 ARM, and Alpine 3.17 CBake sysroot
    packages, including both ARMv7 RIDs, and verify their complete
    host-by-target matrix.
-3. Publish the versioned MSVC/Windows SDK cross-link bundle needed by
-   `lld-link` on Linux and macOS hosts.
+3. Keep non-Windows Windows links on private MSVC/Windows SDK library caches
+   produced by `eng/export-windows-crosslink.ps1` (Microsoft assets are not
+   redistributed in AotAnywhere packages). Optionally automate export/import in
+   CI once a durable private cache is available.
 
 ## Quality and maintenance
 

@@ -31,8 +31,13 @@ paths can be overridden with `AotAnywhereClangExe`,
 For Linux targets, set `AotAnywhereLinuxSysroot` to a compatible sysroot root.
 It must contain `usr/` and a GCC support-library tree under `usr/lib/gcc` or
 `usr/lib64/gcc`. For Windows cross-links, set `AotAnywhereMsvcPath` and
-`AotAnywhereWindowsSdkPath` to MSVC and Windows SDK roots when not using the
-bundled cross-link package.
+`AotAnywhereWindowsSdkPath` to roots produced by
+`eng/export-windows-crosslink.ps1` /
+`eng/import-windows-crosslink.ps1` (see
+[windows-crosslink-cache.md](windows-crosslink-cache.md)):
+
+- `AotAnywhereMsvcPath` must contain `lib/{x64,arm64}`
+- `AotAnywhereWindowsSdkPath` must contain `Lib/<10.*>/{ucrt,um}/{x64,arm64}`
 
 Plain `PackageReference` consumption cannot restore the toolchain references on
 its first restore because NuGet does not evaluate build targets early enough.

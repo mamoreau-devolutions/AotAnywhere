@@ -76,7 +76,7 @@ managed symbol-strip implementation.
 | **Linux** | `linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64` | Ubuntu 18.04 glibc and Alpine 3.17 musl sysroots. |
 | **Linux ARMv7** | `linux-arm`, `linux-musl-arm` | Ubuntu 22.04 glibc and Alpine 3.17 musl sysroots. Both require `net9.0`+. |
 | **macOS** | `osx-x64`, `osx-arm64` | Links against bundled Apple linker stubs. See [macOS targets](docs/macos-targets.md). |
-| **Windows** | `win-x64`, `win-arm64` | Native Windows hosts use MSVC. Linux/macOS cross-links use LLD once the versioned MSVC/Windows SDK cross-link package is published. See [Windows targets](docs/windows-targets.md). |
+| **Windows** | `win-x64`, `win-arm64` | Native Windows hosts use MSVC. Linux/macOS cross-links use `lld-link` with a private MSVC/Windows SDK library cache (not redistributed). See [Windows targets](docs/windows-targets.md) and [Windows cross-link cache](docs/windows-crosslink-cache.md). |
 
 ## Things to be aware of
 

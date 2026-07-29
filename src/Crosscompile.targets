@@ -235,7 +235,7 @@
     </PropertyGroup>
 
     <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' != 'true' and ('$(AotAnywhereMsvcPath)' == '' or '$(AotAnywhereWindowsSdkPath)' == '')"
-          Text="AotAnywhere: non-Windows Windows-target links are deferred until the versioned MSVC/Windows SDK cross-link package is published. Set both AotAnywhereMsvcPath and AotAnywhereWindowsSdkPath to compatible external library roots to build this target now." />
+              Text="AotAnywhere: non-Windows Windows-target links require external MSVC and Windows SDK library roots. Run eng/export-windows-crosslink.ps1 on a licensed Windows install, restore with eng/import-windows-crosslink.ps1, then set both AotAnywhereMsvcPath and AotAnywhereWindowsSdkPath (see docs/windows-crosslink-cache.md)." />
     <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereMsvcPath)/lib')"
           Text="AotAnywhere: MSVC cross-link libraries were not restored. Use the MSBuild SDK reference to restore StuDev.AotAnywhere.Windows.CrossLink, add that PackageReference explicitly, or set AotAnywhereMsvcPath." />
     <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereWindowsSdkPath)/Lib')"
