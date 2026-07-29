@@ -233,7 +233,9 @@ public class ClangResolutionTests
         });
 
         await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.ErrorText).Contains("Windows-target links are deferred");
-        await Assert.That(result.ErrorText).Contains("AotAnywhereMsvcPath");
-    }
-}
+                await Assert.That(result.ErrorText).Contains("require external MSVC and Windows SDK library roots");
+                await Assert.That(result.ErrorText).Contains("export-windows-crosslink.ps1");
+                await Assert.That(result.ErrorText).Contains("AotAnywhereMsvcPath");
+                await Assert.That(result.ErrorText).Contains("AotAnywhereWindowsSdkPath");
+            }
+        }
