@@ -1,6 +1,6 @@
 namespace AotAnywhere.MSBuild.Tests;
 
-// OverwriteTargetTriple maps a RID to the zig target triple that is injected as
+// OverwriteTargetTriple maps a RID to the Clang target triple that is injected as
 // --target=<triple> and drives every cross-compile. Pure RID logic, so these
 // are host-independent.
 public class TargetTripleTests
@@ -14,8 +14,8 @@ public class TargetTripleTests
     [Arguments("alpine-x64", "x86_64-linux-musl")]
     [Arguments("osx-x64", "x86_64-macos")]
     [Arguments("osx-arm64", "aarch64-macos")]
-    [Arguments("win-x64", "x86_64-windows-gnu")]
-    [Arguments("win-arm64", "aarch64-windows-gnu")]
+    [Arguments("win-x64", "x86_64-windows-msvc")]
+    [Arguments("win-arm64", "aarch64-windows-msvc")]
     public async Task Triple(string rid, string expected)
     {
         var result = Harness.Run("OverwriteTargetTriple",

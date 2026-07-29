@@ -23,7 +23,7 @@ jobs:
   # Regenerate the stubs from the newest packs and open a PR on drift. Must run
   # on macOS: the generator drives xcrun/nm and the local SDK's .tbd files.
   drift:
-    runs-on: depot-macos-latest
+    runs-on: macos-latest
     name: Regenerate stubs and check for drift
     steps:
       - name: Checkout repo
@@ -35,15 +35,6 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
-
-      # The generator drops symbols that zig's bundled libSystem stub already
-      # resolves, so the zig here must be the same upstream release the package
-      # ships (ZigVersion 0.16.0.2 in src/ZigVersion.props == upstream 0.16.0).
-      # The zig-version-sync CI guard fails the PR if this drifts from that pin.
-      - name: Setup Zig
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.16.0
 
       - name: Regenerate Apple sysroot stubs (latest packs)
         run: dotnet run eng/generate-apple-sysroot.cs -- --latest
@@ -96,7 +87,7 @@ jobs:
   # that links against the bundled src/apple-sysroot stubs - the real user
   # scenario, and the only configuration where a stub gap turns the run red.
   canary:
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     name: Canary publish (osx-arm64, newest preview SDK)
     steps:
       - name: Checkout repo
@@ -108,18 +99,11 @@ jobs:
           dotnet-version: '11.0.x'
           dotnet-quality: preview
 
-      # test/Hello.csproj imports src/*.targets directly instead of consuming
-      # the packed SDK, so NuGet cannot restore the host Zig toolset
-      # (Vezel.Zig.Toolsets.<host>) on a cold cache - the very gap the package's
-      # error message documents. Provide zig on PATH and set UseExternalZig=true
-      # (below) so the canary links host-side with it; the macOS target still
-      # links against the bundled src/apple-sysroot stubs, which is the point.
-      # Pinned to the same upstream release the package ships (guarded by
-      # eng/check-zig-version-sync.sh against src/ZigVersion.props).
-      - name: Setup Zig
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.16.0
+      # Source imports do not participate in the packaged SDK's restore graph.
+      # Use the runner's LLVM packages for this stub-only canary; release
+      # consumption validates the restored content packages separately.
+      - name: Install Clang and LLD
+        run: sudo apt-get update && sudo apt-get install -y clang lld
 
       - name: Publish Hello for osx-arm64
         # Restore explicitly before publishing: publish's implicit restore
@@ -131,13 +115,13 @@ jobs:
           dotnet restore test/Hello.csproj \
             -r osx-arm64 \
             -p:TargetFramework=net11.0 \
-            -p:UseExternalZig=true
+            -p:UseExternalClang=true
           dotnet publish test/Hello.csproj \
             -r osx-arm64 \
             -c Release \
             --no-restore \
             -p:TargetFramework=net11.0 \
-            -p:UseExternalZig=true \
+            -p:UseExternalClang=true \
             -p:InvariantGlobalization=true \
             --output artifacts/osx-arm64
           test -f artifacts/osx-arm64/Hello

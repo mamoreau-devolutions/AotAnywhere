@@ -23,7 +23,7 @@ dotnet publish -r win-x64`;
     <title>AotAnywhere — Cross-OS Native AOT, without the asterisk</title>
     <meta
       name="description"
-      content="AotAnywhere is a NuGet package that lets dotnet publish -r <rid> build Native AOT apps for Linux, macOS and Windows from any supported host. Zig supplies the linker and sysroot — no cross toolchains, no LLVM, no system packages."
+      content="AotAnywhere is a NuGet package that lets dotnet publish -r <rid> build Native AOT apps for Linux, macOS and Windows from supported hosts. Clang, LLD, and target sysroots restore through versioned content packages."
     />
     <meta property="og:title" content="AotAnywhere — Cross-OS Native AOT, without the asterisk" />
     <meta
@@ -476,8 +476,8 @@ dotnet publish -r win-x64`;
           </div>
           <h1>Cross-OS Native AOT,<br />without the asterisk.</h1>
           <p style="font-size:16px;line-height:1.6;color:#a9bad8;margin:0 0 26px;max-width:440px">
-            Native AOT refuses to link for another OS. AotAnywhere removes that limit — Zig supplies the
-            linker and sysroot, so <span class="mono" style="color:#eaf1ff">dotnet publish -r &lt;rid&gt;</span>
+            Native AOT refuses to link for another OS. AotAnywhere removes that limit — Clang, LLD, and
+            target sysroots supply the link environment, so <span class="mono" style="color:#eaf1ff">dotnet publish -r &lt;rid&gt;</span>
             resolves for Linux, macOS and Windows from any supported host.
           </p>
           <div style="display:flex;gap:12px;flex-wrap:wrap">
@@ -498,7 +498,7 @@ dotnet publish -r win-x64`;
 
       <!-- figure: matrix -->
       <section class="section">
-        <div class="fig-label"><span>FIG. 01 — HOST × TARGET MATRIX</span><span>5 HOSTS × 10 RIDS</span></div>
+        <div class="fig-label"><span>FIG. 01 — HOST × TARGET MATRIX</span><span>CONTENT-PACKAGE MODEL</span></div>
         <div class="matrix">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 400" role="img" aria-label="AotAnywhere platform matrix: builds on Windows, macOS and Linux hosts, runs on Linux, macOS and Windows targets">
             <rect class="surface" x="0.5" y="0.5" width="879" height="399" rx="0"></rect>
@@ -506,7 +506,7 @@ dotnet publish -r win-x64`;
             <text class="colhdr muted" x="736" y="40" text-anchor="middle">RUNS ON</text>
             <g>
               <rect class="card" x="36.5" y="60.5" width="215" height="61" rx="0"></rect>
-              <text class="osname ink" x="52" y="86">Windows</text><text class="arch m-mono muted" x="52" y="106">x64 · x86</text>
+              <text class="osname ink" x="52" y="86">Windows</text><text class="arch m-mono muted" x="52" y="106">x64 · arm64</text>
               <rect class="card" x="36.5" y="146.5" width="215" height="61" rx="0"></rect>
               <text class="osname ink" x="52" y="172">macOS</text><text class="arch m-mono muted" x="52" y="192">arm64 · x64</text>
               <rect class="card" x="36.5" y="232.5" width="215" height="61" rx="0"></rect>
@@ -524,7 +524,7 @@ dotnet publish -r win-x64`;
             <rect class="node" x="356.5" y="125.5" width="167" height="103" rx="0"></rect>
             <text class="brand ink" x="440" y="160" text-anchor="middle">AotAnywhere</text>
             <text class="cmd m-mono ink2" x="440" y="184" text-anchor="middle">dotnet publish -r &lt;rid&gt;</text>
-            <text class="nodesub muted" x="440" y="206" text-anchor="middle">NuGet package · Zig built in</text>
+            <text class="nodesub muted" x="440" y="206" text-anchor="middle">NuGet packages · Clang + sysroots</text>
             <g>
               <path class="flow" d="M524,157 C576,157 576,112 620,112"></path>
               <path class="flow" d="M524,177 C576,177 576,208 620,208"></path>
@@ -546,7 +546,7 @@ dotnet publish -r win-x64`;
               <text class="osname ink" x="644" y="274">Windows</text><text class="rid m-mono ink2" x="644" y="294">win-x64 · win-arm64</text>
             </g>
             <line class="hair" x1="36" y1="336" x2="844" y2="336"></line>
-            <text class="footer ink2" x="440" y="366" text-anchor="middle"><tspan class="good strong">✓  </tspan><tspan class="strong ink">Every combination CI-tested — </tspan><tspan>5 hosts × 10 target RIDs, every binary built and executed on its target platform</tspan></text>
+            <text class="footer ink2" x="440" y="366" text-anchor="middle"><tspan class="strong ink">Versioned LLVM toolsets and target sysroots</tspan></text>
           </svg>
         </div>
       </section>
@@ -574,7 +574,7 @@ dotnet publish -r win-x64`;
             </div>
           </div>
         </div>
-        <div class="note">// no cross toolchains · no LLVM · no system packages · symbol stripping built in</div>
+        <div class="note">// no CMake · versioned LLVM + sysroot packages · symbol stripping built in</div>
       </section>
 
       <!-- platforms -->
@@ -597,12 +597,12 @@ dotnet publish -r win-x64`;
             </div>
             <div class="plat-row">
               <div class="plat-os">Windows</div>
-              <div class="plat-host">x86 · x64</div>
+              <div class="plat-host">x64 · arm64</div>
               <div class="plat-rids">win-x64 · win-arm64</div>
             </div>
           </div>
         </div>
-        <div class="note">// armv7 (linux-arm, linux-musl-arm) → net9.0+ · macOS output needs signing before distribution · win-arm64 host not yet supported</div>
+        <div class="note">// linux-musl-arm requires .NET 9+ · linux-arm awaits a newer CBake glibc baseline · Windows cross-linking awaits its MSVC/SDK package</div>
       </section>
 
       <!-- how -->
@@ -612,29 +612,29 @@ dotnet publish -r win-x64`;
           <div class="step">
             <div class="step-n">01</div>
             <div>
-              <h3>Zig is the linker &amp; sysroot</h3>
-              <p>Links run directly through <span class="mono" style="color:#eaf1ff">zig cc</span>, which also supplies the sysroot for every target — the mechanism that makes cross-OS AOT possible.</p>
+              <h3>Clang and LLD are the linkers</h3>
+              <p>Links run directly through Clang, ld64.lld, or lld-link with the selected target triple and sysroot.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-n">02</div>
             <div>
               <h3>Brings everything with it</h3>
-              <p>No cross toolchains or system packages on the build machine. Bundled Apple sysroot stubs and symbol stripping — no LLVM install.</p>
+              <p>Versioned content packages restore the selected host toolset and target sysroot. CMake is not required.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-n">03</div>
             <div>
               <h3>Restored via the Sdk form</h3>
-              <p>SDK props evaluate during restore, so the host-specific Zig package is fetched the first time with no further setup.</p>
+              <p>SDK props evaluate during restore, so the host-specific Clang package and selected sysroot are fetched together.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-n">04</div>
             <div>
-              <h3>Validated end to end</h3>
-              <p>A CI matrix of 5 hosts × 10 target RIDs builds and executes every binary on its target platform on every change.</p>
+              <h3>Validated from clean restore</h3>
+              <p>CI verifies MSBuild logic, a clean local-feed SDK restore, and an external-Clang Linux smoke publish.</p>
             </div>
           </div>
         </div>

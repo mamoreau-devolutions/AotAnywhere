@@ -1,50 +1,45 @@
 # Advanced configuration
 
-Internals and knobs most users never need. For everyday use see the
-[Quick start](../README.md#quick-start) section of the README.
+For everyday use, reference AotAnywhere as an MSBuild SDK and publish normally.
+The SDK restores a host-specific Clang/LLVM runtime and the target's sysroot
+content package during the first restore; CMake is never invoked.
 
-## How linking works (no native toolchain, no shim)
+## Linking model
 
-AotAnywhere never invokes clang, ld, lld, llvm-objcopy or MSVC's `link.exe`, and
-ships **no per-host native binary**. Every host operation is either done
-directly by Zig or in managed code:
+- Linux links run `clang --target=<triple> --sysroot=<sysroot> -fuse-ld=lld`.
+  The packaged Ubuntu 18.04 (x64/ARM64), Ubuntu 22.04 (ARMv7), and Alpine 3.17
+  sysroots provide the target CRT, libc, and GCC support libraries.
+- macOS links use Clang with `ld64.lld` against the bundled Apple `.tbd` stubs
+  (or a real SDK supplied through `AotAnywhereAppleSysroot`).
+- Non-Windows hosts link Windows targets with `lld-link` and the MSVC, UCRT,
+  and Windows SDK import libraries. The versioned cross-link package will
+  provide those libraries once published; until then, configure both external
+  library roots. The SDK's native MSVC argument list is preserved, including
+  `/MERGE` and `/OPT`.
+- Linux symbol stripping remains a portable managed task that writes the normal
+  `.dbg` sidecar and `.gnu_debuglink`.
 
-- **Linux and macOS links** are taken over in MSBuild (`DirectLink.targets`):
-  the ILC SDK still computes everything that goes into the link, and the
-  package's target reconstructs that command line, applies the small set of
-  zig-specific fixups, and runs `zig cc` directly. The full zig command line is
-  visible in build logs and binlogs.
-- **Windows links** (from a non-Windows host) are done by the
-  `AotAnywhereWindowsLink` MSBuild task: it translates the MSVC `link.exe`
-  arguments the SDK produces into a `zig cc -target <arch>-windows-gnu` MinGW
-  cross-link, honours `/MERGE` by rewriting COFF sections, and supplies the
-  MSVC↔MinGW CRT glue and stub import libraries. On a Windows host, `win-*`
-  targets link natively with MSVC and the package stays inert.
-- **Symbol stripping** for Linux targets is done by the `AotAnywhereStrip`
-  MSBuild task (Zig cannot strip ELF), which implements the minimal ELF surgery
-  `llvm-objcopy` would do (strip non-alloc sections, `--only-keep-debug` sidecar,
-  `.gnu_debuglink`).
+## Using an external toolchain
 
-The ILC SDK's linker/objcopy probes (`command -v`) that would otherwise require
-clang/llvm-objcopy on `PATH` are simply pointed at the restored Zig, which
-satisfies them without any clang behaviour.
+Set `UseExternalClang=true` to bypass content-package resolution. The external
+toolchain must expose Clang and the matching LLD drivers on `PATH`, or set
+`AotAnywhereClangPath` to its root (containing `bin/`). Individual executable
+paths can be overridden with `AotAnywhereClangExe`,
+`AotAnywhereLd64LldExe`, `AotAnywhereLldLinkExe`, and
+`AotAnywhereLlvmObjcopyExe`.
 
-The managed tasks ship as a single portable `AotAnywhere.Tasks.dll`
-(netstandard2.0) under `build/tasks/` — one assembly that runs on every host,
-with no compile-on-demand and no cross-compiled per-host binaries.
+For Linux targets, set `AotAnywhereLinuxSysroot` to a compatible sysroot root.
+It must contain `usr/` and a GCC support-library tree under `usr/lib/gcc` or
+`usr/lib64/gcc`. For Windows cross-links, set `AotAnywhereMsvcPath` and
+`AotAnywhereWindowsSdkPath` to roots produced by
+`eng/export-windows-crosslink.ps1` /
+`eng/import-windows-crosslink.ps1` (see
+[windows-crosslink-cache.md](windows-crosslink-cache.md)):
 
-See [direct-link.md](direct-link.md) for the design.
+- `AotAnywhereMsvcPath` must contain `lib/{x64,arm64}`
+- `AotAnywhereWindowsSdkPath` must contain `Lib/<10.*>/{ucrt,um}/{x64,arm64}`
 
-## Using your own Zig
-
-By default the package relies on Zig provided by the unofficial
-[Vezel.Zig.Toolsets](https://github.com/vezel-dev/zig-toolsets) NuGet package.
-You can select the version with the `ZigVersion` property.
-
-If you don't want to use Zig from the Vezel.Zig.Toolsets NuGet package, you can
-specify `/p:UseExternalZig=true`. This will use whatever Zig is on your PATH.
-[Download](https://ziglang.org/download/) an archive with Zig for your host
-machine, extract it and place it on your PATH.
-
-> Maintainers: bumping the pinned `ZigVersion` follows the
-> [ZigVersion bump checklist](zig-version-bump.md).
+Plain `PackageReference` consumption cannot restore the toolchain references on
+its first restore because NuGet does not evaluate build targets early enough.
+Use the SDK form, restore the matching content packages explicitly, or configure
+an external toolchain.

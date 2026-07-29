@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "clangToolsets": [
+    {
+      "hostRuntimeIdentifier": "linux-x64",
+      "packageId": "StuDev.AotAnywhere.Clang.Toolsets.linux-x64",
+      "packageVersion": "22.1.4.1",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-Linux-X64.tar.xz",
+      "sha256": "cdf232e3bc5d9909ddcf8cb7016802c6745a01e69a596747c684caa894a11567"
+    },
+    {
+      "hostRuntimeIdentifier": "linux-arm64",
+      "packageId": "StuDev.AotAnywhere.Clang.Toolsets.linux-arm64",
+      "packageVersion": "22.1.4.1",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-Linux-ARM64.tar.xz",
+      "sha256": "ac8bed48a6481ccc0e14af18f64d44fc1ca8c0ccf630c1d4dc5e97027e87e6fa"
+    },
+    {
+      "hostRuntimeIdentifier": "win-x64",
+      "packageId": "StuDev.AotAnywhere.Clang.Toolsets.win-x64",
+      "packageVersion": "22.1.4.1",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-win64.exe",
+      "sha256": "21b70c77e26e69cc14aa6e1023568868476748586bf14a978915ed6b3cf76ea1"
+    },
+    {
+      "hostRuntimeIdentifier": "win-arm64",
+      "packageId": "StuDev.AotAnywhere.Clang.Toolsets.win-arm64",
+      "packageVersion": "22.1.4.1",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-woa64.exe",
+      "sha256": "09924875cdf239f7a96e3258ed8d289a050ba385240ac8255a34ea4d2cbfb56c"
+    },
+    {
+      "hostRuntimeIdentifier": "osx-arm64",
+      "packageId": "StuDev.AotAnywhere.Clang.Toolsets.osx-arm64",
+      "packageVersion": "22.1.4.1",
+      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-macOS-ARM64.tar.xz",
+      "sha256": "45e0dfc0453624caed5e7b20e224ce8343af9c511c7f59803753a586620d6ad1"
+    },
+    {
+      "hostRuntimeIdentifier": "osx-x64",
+      "packageId": "StuDev.AotAnywhere.Clang.Toolsets.osx-x64",
+      "packageVersion": "22.1.4.1",
+      "url": "https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-x86_64-macos.tar.xz",
+      "sha256": "ad18d74c97337976d59f4fead5dddd9a9ff58b6eb624be0633f474a0be81745f"
+    }
+  ],
+  "linuxSysroots": [
+    {
+      "id": "ubuntu-18.04-amd64",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-amd64",
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/ubuntu-18.04-amd64-sysroot.tar.xz",
+      "sha256": "03b4babdd4f1afc97132ee5d3fdca5c09df75d555b5c2dff79e9a13df3b2bcd4"
+    },
+    {
+      "id": "ubuntu-18.04-arm64",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-18.04-arm64",
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/ubuntu-18.04-arm64-sysroot.tar.xz",
+      "sha256": "2e368ce83e358e9490798f7d5ea8e9ce870e2122a4f8fa8b584ea549a6d50742"
+    },
+    {
+      "id": "alpine-3.17-amd64",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-amd64",
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/alpine-3.17-amd64-sysroot.tar.xz",
+      "sha256": "be09ca899ecb083d9a21743abb20d8f042d120e0b6662aa81561db396dfdf814"
+    },
+    {
+      "id": "alpine-3.17-arm64",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm64",
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/alpine-3.17-arm64-sysroot.tar.xz",
+      "sha256": "a9b387d09c58bbe3b52b0f98eca39cbfc2d5bae816ef33e00116ff1d900148e1"
+    },
+    {
+      "id": "alpine-3.17-arm",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.alpine-3.17-arm",
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/alpine-3.17-arm-sysroot.tar.xz",
+      "sha256": "07247c51c46f793674479e08487620ea43e09decd7c0c47a247130a14e1f8cca"
+    },
+    {
+      "id": "ubuntu-22.04-arm",
+      "packageId": "StuDev.AotAnywhere.Linux.Sysroots.ubuntu-22.04-arm",
+      "packageVersion": "2026.7.27.1",
+      "url": "https://github.com/Devolutions/CBake/releases/download/v2026.07.27.0/ubuntu-22.04-arm-sysroot.tar.xz",
+      "sha256": "e2ff26f2a0cbe847bc53899b0c09c88d91b76428205c4b31e90f95661d1e6810"
+    }
+  ],
+  "windowsCrossLink": {
+    "packageId": "StuDev.AotAnywhere.Windows.CrossLink",
+    "packageVersion": "2026.2.0.1",
+    "reason": "Requires a versioned awakecoding/llvm-prebuilt MSVC and Windows SDK bundle release."
+  }
+}

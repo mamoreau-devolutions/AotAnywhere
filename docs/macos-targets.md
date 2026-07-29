@@ -24,16 +24,16 @@ Things to know:
 - Symbols are stripped by default (`StripSymbols` defaults to `true`, as on
   every Unix target), but at link time via ld64's `-x`/`-S` rather than Apple's
   post-link `strip` — Apple's `strip`/`dsymutil` are unavailable on other hosts
-  and reject zig-linked binaries anyway. That also means no `.dSYM` sidecar is
+  and are not available on cross hosts. That also means no `.dSYM` sidecar is
   produced; publish with `/p:StripSymbols=false` to keep the symbols in the
   binary instead. (Native AOT stack traces don't need either — they come from
   ILC's own metadata.) Older ILCs emit many method symbols as externals, which
   link-time stripping cannot remove, so binaries get closer to the standard
   pipeline's size the newer the target framework: on .NET 10 they are within a
   few percent, on .NET 8 noticeably larger.
-- zig gives osx-arm64 binaries an ad-hoc code signature (Apple Silicon refuses
-  to run entirely unsigned code); osx-x64 binaries are left unsigned. Either way
-  that only covers running locally — for distribution you should sign (and if
+- `ld64.lld` is asked to ad-hoc sign cross-linked output so both Apple Silicon
+  and Intel output can run locally. That only covers running locally — for
+  distribution you should sign (and if
   needed notarize) the result, which works from any host, no Mac required; see
   [Signing and notarizing](#signing-and-notarizing) below.
 - To link against a real Apple SDK instead of the bundled stubs, set the
@@ -42,9 +42,8 @@ Things to know:
 
 ## Signing and notarizing
 
-Out of the box the binaries only run locally: zig ad-hoc signs osx-arm64 output
-(Apple Silicon requires at least that much) and leaves osx-x64 output unsigned.
-That is not enough to distribute: anything downloaded with a browser gets
+Out of the box the binaries carry an ad-hoc signature. That is not enough to
+distribute: anything downloaded with a browser gets
 quarantined, and Gatekeeper only clears it when the binary is signed with a
 Developer ID certificate and notarized by Apple. Both steps can be done from any
 host — no Mac required.

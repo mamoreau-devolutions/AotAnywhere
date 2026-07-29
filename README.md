@@ -12,14 +12,15 @@ Microsoft.NETCore.Native.Publish.targets(59,5): error : Cross-OS native compilat
 
 AotAnywhere is a NuGet package that lifts that restriction. Add it to your
 project and `dotnet publish -r <rid>` just works for Linux, macOS and Windows
-RIDs, from a Windows, macOS or Linux machine. It uses [Zig](https://ziglang.org/)
-as the linker and sysroot, and brings everything it needs with it — no extra
-SDKs, cross toolchains or system packages to install on the build machine.
+RIDs, from a Windows, macOS or Linux machine. It uses Clang, LLD, and
+versioned target sysroots, restored through host-specific NuGet content
+packages, so no CMake installation or separately configured cross toolchain is
+required on the build machine.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/platform-matrix-dark.svg">
-    <img alt="Diagram: builds on Windows (x64, x86), macOS (arm64, x64) and Linux (x64, arm64) hosts, through AotAnywhere (dotnet publish -r <rid>), and runs on Linux glibc and musl (x64, arm64, arm), macOS (osx-arm64, osx-x64) and Windows (win-x64, win-arm64). Every combination is CI-tested: 5 hosts × 10 target RIDs." src="docs/assets/platform-matrix-light.svg" width="880">
+    <img alt="Diagram: builds on Windows (x64, arm64), macOS (arm64, x64) and Linux (x64, arm64) hosts, through AotAnywhere (dotnet publish -r <rid>), and runs on Linux glibc and musl (x64, arm64, arm), macOS (osx-arm64, osx-x64) and Windows (win-x64, win-arm64)." src="docs/assets/platform-matrix-light.svg" width="880">
   </picture>
 </p>
 
@@ -41,28 +42,30 @@ SDKs, cross toolchains or system packages to install on the build machine.
 2. Publish for one of the newly available RIDs:
 
    ```sh
-   dotnet publish -r linux-x64        # or linux-arm64, linux-arm*
+   dotnet publish -r linux-x64        # or linux-arm64
    dotnet publish -r linux-musl-x64   # or linux-musl-arm64, linux-musl-arm*
    dotnet publish -r osx-x64          # or osx-arm64
    dotnet publish -r win-x64          # or win-arm64
    ```
 
-That's it — no other tools required, including symbol stripping (the package
-handles that itself, no LLVM install needed).
+That's it — no other tools or CMake installation required. The package supplies
+the required Clang/LLD runtime and target sysroot packages, while retaining its
+managed symbol-strip implementation.
 
 > **Why an `Sdk` reference and not a `PackageReference`?** The package pulls in
-> its Zig linker toolchain through a second, host-specific NuGet package, and
+> its Clang/LLD toolset and target sysroot through host-specific NuGet content
+> packages, and
 > NuGet cannot restore package references declared inside a package's build
 > targets ([NuGet/Home#4790](https://github.com/NuGet/Home/issues/4790)). SDK
 > props *are* evaluated during restore, so the `Sdk` form fetches everything the
 > first time with no further setup. A plain `PackageReference` still works if you
-> restore Zig yourself — see [Advanced configuration](docs/advanced-configuration.md).
+> restore the matching content packages yourself — see [Advanced configuration](docs/advanced-configuration.md).
 
 ## Supported platforms
 
 **Host machines** (where you run `dotnet publish`):
 
-- **Windows** (x86, x64)
+- **Windows** (x64, arm64)
 - **macOS** (x64, arm64)
 - **Linux** (x64, arm64)
 
@@ -70,30 +73,26 @@ handles that itself, no LLVM install needed).
 
 | Target | RIDs | Notes |
 | --- | --- | --- |
-| **Linux** | `linux-x64`, `linux-arm64`, `linux-arm`, `linux-musl-x64`, `linux-musl-arm64`, `linux-musl-arm` | glibc and musl. The `arm`/ARMv7 RIDs require a `net9.0`+ target framework. |
+| **Linux** | `linux-x64`, `linux-arm64`, `linux-musl-x64`, `linux-musl-arm64` | Ubuntu 18.04 glibc and Alpine 3.17 musl sysroots. |
+| **Linux ARMv7** | `linux-arm`, `linux-musl-arm` | Ubuntu 22.04 glibc and Alpine 3.17 musl sysroots. Both require `net9.0`+. |
 | **macOS** | `osx-x64`, `osx-arm64` | Links against bundled Apple linker stubs. See [macOS targets](docs/macos-targets.md). |
-| **Windows** | `win-x64`, `win-arm64` | From Linux/macOS hosts, via zig's MinGW-w64 import libraries. On a Windows host the SDK links these natively with MSVC. See [Windows targets](docs/windows-targets.md). |
+| **Windows** | `win-x64`, `win-arm64` | Native Windows hosts use MSVC. Linux/macOS cross-links use `lld-link` with a private MSVC/Windows SDK library cache (not redistributed). See [Windows targets](docs/windows-targets.md) and [Windows cross-link cache](docs/windows-crosslink-cache.md). |
 
 ## Things to be aware of
 
-- **ARMv7 needs .NET 9+.** The `linux-arm` and `linux-musl-arm` targets require a
-  `net9.0` or later target framework — .NET only ships ILCompiler runtime packs
-  for them from .NET 9 onwards.
+- **ARMv7 targets require .NET 9 or later.** `linux-arm` uses the published
+  CBake Ubuntu 22.04 sysroot with glibc 2.35, while `linux-musl-arm` uses the
+  Alpine 3.17 sysroot.
 
 - **macOS binaries need signing before you distribute them.** Out of the box the
-  output only runs locally (osx-arm64 gets an ad-hoc signature, osx-x64 is
-  unsigned). To hand it to other people you must sign it with a Developer ID
+  output has an ad-hoc signature for local execution. To hand it to other people
+  you must sign it with a Developer ID
   certificate and notarize it — both doable from any host, no Mac required. See
   [Signing and notarizing](docs/macos-targets.md#signing-and-notarizing).
 
-- **Windows output skips some MSVC hardening.** Control Flow Guard and CET
-  markers (`/CETCOMPAT`) are not carried over. For maximum-hardening release
-  builds, link on Windows with MSVC. Details in [Windows targets](docs/windows-targets.md).
-
-- **Windows on ARM64 is not supported as a host.** zig 0.16's aarch64-windows
-  code generation is broken, so Zig can't reliably run there. It will be
-  revisited when a newer Zig fixes it. (win-arm64 as a *target* is fully
-  supported.)
+- **Windows x86 is not supported as a host.** The Clang content-package matrix
+  supplies Windows x64 and ARM64 hosts. Windows ARM64 is supported as both a
+  host and target.
 
 - **Linux ICU dependency.** A cross-compiled binary may need the ICU library on
   the target machine, the same as any globalization-enabled .NET app. See
@@ -140,9 +139,9 @@ binary matching the user's machine. A single `dotnet pack` builds all of them,
 but the base SDK only packs the RIDs the host's native toolchain can build
 (e.g. a linux-x64 machine packs only linux-x64).
 
-With AotAnywhere referenced, that limit goes away: `dotnet pack` on one
-machine produces packages for **every** RID listed in
-`ToolPackageRuntimeIdentifiers` (or `RuntimeIdentifiers`), via the SDK's
+With AotAnywhere referenced, that limit goes away for every RID whose content
+packages have been released: `dotnet pack` on one machine produces packages for
+the listed RIDs, via the SDK's
 tool-packaging extensibility point
 ([dotnet/sdk#55250](https://github.com/dotnet/sdk/pull/55250)).
 
@@ -150,7 +149,7 @@ tool-packaging extensibility point
 <PropertyGroup>
   <PackAsTool>true</PackAsTool>
   <PublishAot>true</PublishAot>
-  <ToolPackageRuntimeIdentifiers>linux-x64;linux-arm64;linux-musl-x64;linux-musl-arm64;osx-x64;osx-arm64;win-x64;win-arm64</ToolPackageRuntimeIdentifiers>
+  <ToolPackageRuntimeIdentifiers>linux-x64;linux-arm64;linux-arm;linux-musl-x64;linux-musl-arm64;linux-musl-arm;osx-x64;osx-arm64</ToolPackageRuntimeIdentifiers>
 </PropertyGroup>
 ```
 
@@ -162,9 +161,8 @@ Things to know:
 
 - **Requires a .NET 11 SDK** with the extensibility point; on older SDKs the
   hook is inert and the SDK's own host-capability rules apply.
-- Every requested RID is attempted, unfiltered — a RID this package can't
-  build fails its inner publish with a clear error rather than being silently
-  dropped from the set of produced packages.
+- Include Windows target RIDs after publishing the MSVC/Windows SDK cross-link
+  package.
 - Set `AotAnywhereMultiRidToolPackaging=false` to opt out and restore the
   SDK's default host-capability selection.
 
@@ -209,20 +207,18 @@ Things to know:
   notarizing for distribution
 - [Windows targets](docs/windows-targets.md) — how win-x64/win-arm64 cross-linking works
 - [Advanced configuration](docs/advanced-configuration.md) — how linking works
-  (MSBuild takeovers + managed tasks), and using your own Zig
-- [Cross-platform validation](docs/cross-platform-validation.md) — the CI matrix
-  that tests every host → target combination
+  (MSBuild takeovers + managed tasks), and using an external Clang toolchain
+- [Cross-platform validation](docs/cross-platform-validation.md) — current CI
+  coverage and the Windows cross-link prerequisite
 
 ## Credits
 
 AotAnywhere began as a fork of Michal Strehovsky's
 [PublishAotCross](https://github.com/MichalStrehovsky/PublishAotCross), which
-first demonstrated that Zig could stand in as the linker and sysroot to make
-Native AOT cross-compilation work. It has since been substantially rewritten —
-the native shim is gone, links run directly through `zig cc` and managed MSBuild
-tasks, and it ships bundled Apple sysroot stubs, symbol stripping, and a full
-host × target CI matrix — but the original insight and inspiration are Michal's.
-Thank you.
+demonstrated that Native AOT's platform restrictions can be lifted by supplying
+the right linker and sysroot. It has since been substantially rewritten: links
+run directly through Clang/LLD and managed MSBuild tasks, with bundled Apple
+stubs, Linux sysroots, and symbol stripping.
 
 ## License
 

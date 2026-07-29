@@ -19,23 +19,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  zig_version_sync:
-    runs-on: depot-ubuntu-latest
-    name: ZigVersion drift guard
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v7
-      # Fails the PR if the out-of-band ZigVersion pins (the setup-zig step in
-      # apple-sysroot-drift.yml and the prose in .copilot-instructions.md) drift
-      # from the single source of truth in src/ZigVersion.props.
-      - name: Check ZigVersion is in sync
-        run: ./eng/check-zig-version-sync.sh
-
   build_and_test:
     strategy:
       matrix:
         include:
-          - vm: depot-windows-latest
+          - vm: ubuntu-latest
     runs-on: ${{ matrix.vm }}
     name: Build and test ${{ matrix.vm }}
     steps:
@@ -45,8 +33,8 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
-      # Pack restores the Vezel zig toolset and the publish pulls the
-      # linux-x64 ILCompiler/runtime packs - both sizeable downloads.
+      # The Linux smoke build uses the runner's Clang and host sysroot. Package
+      # consumption with restored content packages is covered separately.
       - name: Cache NuGet packages
         uses: actions/cache@v6
         with:
@@ -54,21 +42,23 @@ jobs:
           key: nuget-ci-${{ runner.os }}-${{ hashFiles('src/AotAnywhere.nuproj', 'src/Crosscompile.targets', 'test/Hello.csproj') }}
           restore-keys: |
             nuget-ci-${{ runner.os }}-
-      # For the AotAnywhereUpxCompress publish below. Pinned release download:
-      # no winget/choco on the runner path to flake.
-      - name: Install UPX
+      - name: Install Clang, LLD, and UPX
         shell: bash
         run: |
-          curl -sSfL -o "$RUNNER_TEMP/upx.zip" https://github.com/upx/upx/releases/download/v5.2.0/upx-5.2.0-win64.zip
-          unzip -q "$RUNNER_TEMP/upx.zip" -d "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/upx-5.2.0-win64" >> "$GITHUB_PATH"
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm
+          curl -sSfL -o "$RUNNER_TEMP/upx.tar.xz" https://github.com/upx/upx/releases/download/v5.0.2/upx-5.0.2-amd64_linux.tar.xz
+          tar -xJf "$RUNNER_TEMP/upx.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/upx-5.0.2-amd64_linux" >> "$GITHUB_PATH"
       - name: Build
         shell: bash
         run: |
           dotnet build -t:Pack src/AotAnywhere.nuproj
           # Default publish: StripSymbols=true for Linux targets, served by
           # the managed AotAnywhereStrip task (no LLVM on the runner).
-          dotnet publish -r linux-x64 -c Release test/Hello.csproj
+          dotnet publish -r linux-x64 -c Release \
+            -p:UseExternalClang=true -p:AotAnywhereLinuxSysroot=/ \
+            test/Hello.csproj
           # The strip pipeline must have produced the symbol sidecar.
           test -f test/bin/Release/net8.0/linux-x64/publish/Hello.dbg
           # Opt-in UPX compression. Same obj, so the link is up to date and
@@ -76,7 +66,9 @@ jobs:
           # both variants reach the validate job. UPX packs the published copy
           # in this folder, leaving the shared obj (and the default publish
           # above) uncompressed.
-          dotnet publish -r linux-x64 -c Release -p:AotAnywhereUpxCompress=true -o test/bin/upx-publish test/Hello.csproj
+          dotnet publish -r linux-x64 -c Release \
+            -p:UseExternalClang=true -p:AotAnywhereLinuxSysroot=/ \
+            -p:AotAnywhereUpxCompress=true -o test/bin/upx-publish test/Hello.csproj
       - name: Upload test binary
         uses: actions/upload-artifact@v7
         with:
@@ -90,7 +82,7 @@ jobs:
 
   validate:
     needs: build_and_test
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     name: Try launching
     steps:
       - name: Download all artifacts

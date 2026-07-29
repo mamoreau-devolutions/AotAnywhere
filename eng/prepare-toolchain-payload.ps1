@@ -1,0 +1,206 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)]
+    [ValidateSet('clang', 'sysroot')]
+    [string] $Kind,
+
+    [Parameter(Mandatory)]
+    [string] $ArchivePath,
+
+    [Parameter(Mandatory)]
+    [string] $Sha256,
+
+    [Parameter(Mandatory)]
+    [string] $PayloadDirectory
+)
+
+$ErrorActionPreference = 'Stop'
+
+function Copy-ResolvedFile {
+    param(
+        [Parameter(Mandatory)]
+        [string] $Source,
+
+        [Parameter(Mandatory)]
+        [string] $Destination
+    )
+
+    $item = Get-Item -LiteralPath $Source
+    $resolved = $item.ResolveLinkTarget($true)
+    if ($null -ne $resolved) {
+        $item = $resolved
+    }
+
+    Copy-Item -LiteralPath $item.FullName -Destination $Destination -Force
+}
+
+function Remove-NuGetIncompatibleSysrootFiles {
+    param(
+        [Parameter(Mandatory)]
+        [string] $SysrootDirectory
+    )
+
+    # Linux exposes these legacy netfilter target headers alongside their
+    # lowercase replacements. NuGet package paths are case-insensitive, so
+    # keeping both would produce a package that cannot be restored on Windows.
+    $legacyCaseAliases = @(
+        'usr/include/linux/netfilter/xt_CONNMARK.h',
+        'usr/include/linux/netfilter/xt_DSCP.h',
+        'usr/include/linux/netfilter/xt_MARK.h',
+        'usr/include/linux/netfilter/xt_RATEEST.h',
+        'usr/include/linux/netfilter/xt_TCPMSS.h',
+        'usr/include/linux/netfilter_ipv4/ipt_ECN.h',
+        'usr/include/linux/netfilter_ipv4/ipt_TTL.h',
+        'usr/include/linux/netfilter_ipv6/ip6t_HL.h'
+    )
+
+    foreach ($relativePath in $legacyCaseAliases) {
+        $path = Join-Path $SysrootDirectory $relativePath
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            Remove-Item -LiteralPath $path -Force
+        }
+    }
+
+    $filesByCaseInsensitivePath = [System.Collections.Generic.Dictionary[string, string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    $collisions = [System.Collections.Generic.List[string]]::new()
+    foreach ($file in Get-ChildItem -LiteralPath $SysrootDirectory -File -Recurse) {
+        $relativePath = [System.IO.Path]::GetRelativePath($SysrootDirectory, $file.FullName).Replace('\', '/')
+        if (-not $filesByCaseInsensitivePath.TryAdd($relativePath, $relativePath)) {
+            $collisions.Add("$($filesByCaseInsensitivePath[$relativePath]) <-> $relativePath")
+        }
+    }
+
+    if ($collisions.Count -ne 0) {
+        throw "Sysroot contains case-colliding paths that NuGet cannot package: $($collisions -join '; ')."
+    }
+}
+
+function Remove-UnneededSysrootMetadata {
+    param(
+        [Parameter(Mandatory)]
+        [string] $SysrootDirectory
+    )
+
+    # Systemd service metadata is never used for cross-linking. Ubuntu 22.04 ARM
+    # includes a generated unit with a literal backslash in its name, which
+    # cannot be represented as a NuGet package path on Windows.
+    $systemdMetadata = Join-Path $SysrootDirectory 'usr/lib/systemd'
+    if (Test-Path -LiteralPath $systemdMetadata -PathType Container) {
+        Remove-Item -LiteralPath $systemdMetadata -Recurse -Force
+    }
+}
+
+if (-not (Test-Path -LiteralPath $ArchivePath -PathType Leaf)) {
+    throw "Artifact does not exist: $ArchivePath"
+}
+
+$actualHash = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actualHash -ne $Sha256.ToLowerInvariant()) {
+    throw "SHA-256 mismatch for $ArchivePath. Expected $Sha256, got $actualHash."
+}
+
+$archive = (Resolve-Path -LiteralPath $ArchivePath).Path
+$payload = [System.IO.Path]::GetFullPath($PayloadDirectory)
+$staging = Join-Path ([System.IO.Path]::GetTempPath()) ("aotanywhere-toolchain-" + [guid]::NewGuid().ToString('N'))
+
+try {
+    New-Item -ItemType Directory -Force -Path $staging | Out-Null
+    if ($archive.EndsWith('.exe', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $installer = Start-Process -FilePath $archive -ArgumentList "/S", "/D=$staging" -Wait -PassThru
+        if ($installer.ExitCode -ne 0) {
+            throw "LLVM installer exited with code $($installer.ExitCode)."
+        }
+    }
+    else {
+        & tar -xf $archive -C $staging
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not extract $archive."
+        }
+    }
+
+    Remove-Item -LiteralPath $payload -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force -Path $payload | Out-Null
+
+    if ($Kind -eq 'sysroot') {
+        $sysrootCandidates = @((Get-Item -LiteralPath $staging)) + @(Get-ChildItem -LiteralPath $staging -Directory)
+        $sysrootSource = $sysrootCandidates |
+            Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'usr') } |
+            Select-Object -First 1
+        if ($null -eq $sysrootSource) {
+            throw "Could not find a Linux sysroot root under $staging."
+        }
+
+        $sysrootDestination = Join-Path $payload 'sysroot'
+        New-Item -ItemType Directory -Force -Path $sysrootDestination | Out-Null
+        Remove-UnneededSysrootMetadata -SysrootDirectory $sysrootSource.FullName
+        Get-ChildItem -LiteralPath $sysrootSource.FullName -Force |
+            ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $sysrootDestination -Recurse }
+        Remove-NuGetIncompatibleSysrootFiles -SysrootDirectory $sysrootDestination
+        return
+    }
+
+    $source = Get-ChildItem -LiteralPath $staging -Directory |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'bin') } |
+        Select-Object -First 1
+    if ($null -eq $source) {
+        if (Test-Path -LiteralPath (Join-Path $staging 'bin')) {
+            $source = Get-Item -LiteralPath $staging
+        }
+        else {
+            throw "Could not find an LLVM distribution root under $staging."
+        }
+    }
+
+    $binDestination = Join-Path $payload 'bin'
+    New-Item -ItemType Directory -Force -Path $binDestination | Out-Null
+    $toolNames = 'clang', 'clang++', 'ld.lld', 'ld64.lld', 'lld-link', 'llvm-objcopy', 'llvm-ar', 'llvm-ranlib'
+    foreach ($tool in $toolNames) {
+        foreach ($candidate in @(
+            (Join-Path $source.FullName "bin/$tool"),
+            (Join-Path $source.FullName "bin/$tool.exe")
+        )) {
+            if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+                Copy-ResolvedFile -Source $candidate -Destination (Join-Path $binDestination (Split-Path $candidate -Leaf))
+                break
+            }
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath (Join-Path $binDestination 'clang')) -and
+        -not (Test-Path -LiteralPath (Join-Path $binDestination 'clang.exe'))) {
+        throw "The extracted LLVM distribution has no clang executable."
+    }
+
+    $resourceSource = Join-Path $source.FullName 'lib/clang'
+    if (-not (Test-Path -LiteralPath $resourceSource -PathType Container)) {
+        throw "The extracted LLVM distribution has no Clang resource directory."
+    }
+    New-Item -ItemType Directory -Force -Path (Join-Path $payload 'lib') | Out-Null
+    Copy-Item -LiteralPath $resourceSource -Destination (Join-Path $payload 'lib/clang') -Recurse
+
+    foreach ($libraryRoot in @((Join-Path $source.FullName 'bin'), (Join-Path $source.FullName 'lib'))) {
+        if (-not (Test-Path -LiteralPath $libraryRoot -PathType Container)) {
+            continue
+        }
+
+        $libraryDestination = if ($libraryRoot -eq (Join-Path $source.FullName 'bin')) {
+            $binDestination
+        }
+        else {
+            Join-Path $payload 'lib'
+        }
+        New-Item -ItemType Directory -Force -Path $libraryDestination | Out-Null
+
+        Get-ChildItem -LiteralPath $libraryRoot -File |
+            Where-Object {
+                $_.Name -match '\.dll$|\.dylib$|\.so(\.[0-9.]+)?$'
+            } |
+            ForEach-Object {
+                Copy-ResolvedFile -Source $_.FullName -Destination (Join-Path $libraryDestination $_.Name)
+            }
+    }
+}
+finally {
+    Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
+}

@@ -6,7 +6,7 @@ namespace AotAnywhere.MSBuild.Tests;
 
 // Loads Harness.proj (which imports the package's real targets) through the
 // MSBuild API, so tests can assert on evaluated properties and on the results
-// of running individual targets with injected inputs. No zig, no ILCompiler
+// of running individual targets with injected inputs. No external toolchain, no ILCompiler
 // restore, no linking - pure MSBuild evaluation/execution.
 internal static class Harness
 {

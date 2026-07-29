@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+
+  <!-- Generic content-package project. The release workflow invokes it once
+       per manifest entry after the source artifact has been downloaded,
+       checksum-verified, and reduced to the documented tools/ layout. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId Condition="'$(AotAnywhereToolchainPackageId)' != ''">$(AotAnywhereToolchainPackageId)</PackageId>
+    <Version Condition="'$(Version)' == ''">0.0.0-dev</Version>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <Target Name="ValidateToolchainPayload" BeforeTargets="_GetPackageFiles">
+    <Error Condition="'$(PackageId)' == ''"
+           Text="Set AotAnywhereToolchainPackageId when packing a toolchain content package." />
+    <Error Condition="'$(AotAnywhereToolchainPayloadDir)' == '' or !Exists('$(AotAnywhereToolchainPayloadDir)')"
+           Text="AotAnywhereToolchainPayloadDir must name the prepared payload directory." />
+  </Target>
+
+  <ItemGroup Condition="'$(AotAnywhereToolchainPayloadDir)' != ''">
+    <None Include="$(AotAnywhereToolchainPayloadDir)\**\*">
+      <Pack>true</Pack>
+      <PackagePath>tools</PackagePath>
+      <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -14,8 +14,8 @@ public sealed class ElfFormatException : Exception
 }
 
 /// Minimal ELF symbol-strip surgery for exactly the operations the ILC targets
-/// drive through llvm-objcopy on Linux targets (zig 0.16's own `zig objcopy`
-/// cannot write ELF). Faithful port of objcopy_shim.zig's rewriteElf/parseElf:
+/// drive through llvm-objcopy on Linux targets. Faithful implementation of the
+/// retired shim's rewriteElf/parseElf behavior:
 ///
 ///   --strip-debug/--strip-unneeded  -> Strip()
 ///   --only-keep-debug <bin> <bin>.dbg -> a full copy of the binary (the caller)
@@ -35,7 +35,7 @@ public static class ElfStripper
     const uint SHT_NOBITS = 8;
     const uint SHT_REL = 9;
 
-    // zig-linked Native AOT binaries have ~30 sections; ELF extended numbering
+    // Native AOT binaries have ~30 sections; ELF extended numbering
     // (real count in shdr[0]) starts at 0xff00, which we reject.
     const int MaxSections = 0xff00;
 

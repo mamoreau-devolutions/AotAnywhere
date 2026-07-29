@@ -4,9 +4,9 @@
 
        This entry point exists because NuGet cannot restore a PackageReference
        declared inside a package's build/ targets (NuGet/Home#4790): consumed as
-       a plain PackageReference, the Zig toolset reference in
-       Crosscompile.targets is invisible to restore, so on a clean machine Zig
-       is never fetched and the link fails. SDK props, by contrast, ARE
+       a plain PackageReference, the Clang toolset and sysroot references in
+       Crosscompile.targets are invisible to restore, so on a clean machine the
+       cross toolchain is never fetched and the link fails. SDK props, by contrast, ARE
        evaluated during restore — so the references below land in the restore
        graph and everything is fetched first time.
 
@@ -22,16 +22,29 @@
     <AotAnywherePackageVersion Condition="'$(AotAnywherePackageVersion)' == ''">__AOTANYWHERE_PACKAGE_VERSION__</AotAnywherePackageVersion>
 
     <!-- On the very first restore the package's build/ targets (which import
-         ZigVersion.props) are not imported yet, so ZigVersion must be known
+         ClangToolchainVersion.props) are not imported yet, so the content
+         package versions must be known
          here too. Rather than duplicate the literal, it is baked in at pack
-         time from the single ZigVersion.props pin (BakeSdkProps in the nuproj
-         substitutes the placeholder below); see docs/zig-version-bump.md. -->
-    <ZigVersion Condition="'$(ZigVersion)' == ''">__AOTANYWHERE_ZIG_VERSION__</ZigVersion>
+         time from the single ClangToolchainVersion.props pins (BakeSdkProps in
+         the nuproj substitutes the placeholders below). -->
+    <AotAnywhereClangToolsetVersion Condition="'$(AotAnywhereClangToolsetVersion)' == ''">__AOTANYWHERE_CLANG_TOOLSET_VERSION__</AotAnywhereClangToolsetVersion>
+    <AotAnywhereLinuxSysrootVersion Condition="'$(AotAnywhereLinuxSysrootVersion)' == ''">__AOTANYWHERE_LINUX_SYSROOT_VERSION__</AotAnywhereLinuxSysrootVersion>
+    <AotAnywhereWindowsCrossLinkVersion Condition="'$(AotAnywhereWindowsCrossLinkVersion)' == ''">__AOTANYWHERE_WINDOWS_CROSS_LINK_VERSION__</AotAnywhereWindowsCrossLinkVersion>
+    <AotAnywhereLinuxMuslArmSysrootAvailable Condition="'$(AotAnywhereLinuxMuslArmSysrootAvailable)' == ''">__AOTANYWHERE_LINUX_MUSL_ARM_SYSROOT_AVAILABLE__</AotAnywhereLinuxMuslArmSysrootAvailable>
+    <AotAnywhereWindowsCrossLinkAvailable Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == ''">__AOTANYWHERE_WINDOWS_CROSS_LINK_AVAILABLE__</AotAnywhereWindowsCrossLinkAvailable>
     <HostRuntimeIdentifier Condition="'$(HostRuntimeIdentifier)' == ''">$(NETCoreSdkPortableRuntimeIdentifier)</HostRuntimeIdentifier>
 
-    <!-- Tells Crosscompile.targets its own (restore-invisible) Zig reference is
-         superseded by the restore-visible one below. -->
-    <_AotAnywhereZigRefViaSdk>true</_AotAnywhereZigRefViaSdk>
+    <!-- Tells Crosscompile.targets its own restore-invisible references are
+         superseded by the restore-visible ones below. -->
+    <_AotAnywhereToolchainRefsViaSdk>true</_AotAnywhereToolchainRefsViaSdk>
+
+    <AotAnywhereLinuxSysrootId />
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-x64'">ubuntu-18.04-amd64</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm64'">ubuntu-18.04-arm64</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-arm'">ubuntu-22.04-arm</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-x64'">alpine-3.17-amd64</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm64'">alpine-3.17-arm64</AotAnywhereLinuxSysrootId>
+    <AotAnywhereLinuxSysrootId Condition="'$(RuntimeIdentifier)' == 'linux-musl-arm'">alpine-3.17-arm</AotAnywhereLinuxSysrootId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,16 +53,30 @@
       PrivateAssets="all"
       IsImplicitlyDefined="true" />
 
-    <!-- Zig for the build host. Only referenced when this build would actually
+    <!-- Clang/LLVM for the build host. Only referenced when this build would actually
          cross-link — the same condition as the Crosscompile.targets import in
          StuDev.AotAnywhere.targets (keep in sync) — so RID-less restores and
          plain builds don't download a ~50 MB toolchain they won't use. -->
-    <PackageReference Include="Vezel.Zig.Toolsets.$(HostRuntimeIdentifier)"
-      Version="$(ZigVersion)"
+    <PackageReference Include="StuDev.AotAnywhere.Clang.Toolsets.$(HostRuntimeIdentifier)"
+      Version="$(AotAnywhereClangToolsetVersion)"
       PrivateAssets="all"
       IsImplicitlyDefined="true"
       GeneratePathProperty="true"
-      Condition="'$(UseExternalZig)' != 'true' and '$(HostRuntimeIdentifier)' != '' and ($(RuntimeIdentifier.Contains('linux')) or $(RuntimeIdentifier.Contains('osx')) or ($(RuntimeIdentifier.StartsWith('win')) and !$([MSBuild]::IsOSPlatform('Windows'))))" />
+      Condition="'$(UseExternalClang)' != 'true' and '$(HostRuntimeIdentifier)' != '' and ($(RuntimeIdentifier.Contains('linux')) or $(RuntimeIdentifier.Contains('osx')) or ($(RuntimeIdentifier.StartsWith('win')) and !$([MSBuild]::IsOSPlatform('Windows'))))" />
+
+    <PackageReference Include="StuDev.AotAnywhere.Linux.Sysroots.$(AotAnywhereLinuxSysrootId)"
+      Version="$(AotAnywhereLinuxSysrootVersion)"
+      PrivateAssets="all"
+      IsImplicitlyDefined="true"
+      GeneratePathProperty="true"
+      Condition="'$(UseExternalClang)' != 'true' and ('$(AotAnywhereLinuxSysrootId)' != 'alpine-3.17-arm' or '$(AotAnywhereLinuxMuslArmSysrootAvailable)' == 'true')" />
+
+    <PackageReference Include="StuDev.AotAnywhere.Windows.CrossLink"
+      Version="$(AotAnywhereWindowsCrossLinkVersion)"
+      PrivateAssets="all"
+      IsImplicitlyDefined="true"
+      GeneratePathProperty="true"
+      Condition="'$(UseExternalClang)' != 'true' and '$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and $(RuntimeIdentifier.StartsWith('win')) and !$([MSBuild]::IsOSPlatform('Windows'))" />
   </ItemGroup>
 
 </Project>

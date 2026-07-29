@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.Build.NoTargets">
 
-  <!-- The single ZigVersion pin, baked into Sdk.props at pack time (BakeSdkProps).
-       Same file the packed targets import. -->
-  <Import Project="ZigVersion.props" />
+  <!-- The single set of Clang/toolchain content-package pins, baked into
+       Sdk.props at pack time (BakeSdkProps). Same file the packed targets import. -->
+  <Import Project="ClangToolchainVersion.props" />
 
   <PropertyGroup>
 
@@ -12,16 +12,16 @@
     <Version Condition="'$(Version)' == ''">42.42.42-dev</Version>
     <Authors>Stuart Lang</Authors>
     <Company>Stuart Lang</Company>
-    <Description>MSBuild targets to aid in crosscompiling Native AOT publishing. Publish native AOT binaries for Linux and macOS targets from any host (Windows, macOS, Linux) using Zig as the linker. Based on PublishAotCross by Michal Strehovsky.</Description>
+    <Description>MSBuild targets to aid in crosscompiling Native AOT publishing. Publish native AOT binaries for Linux, macOS, and Windows targets from any supported host using Clang and LLVM.</Description>
     <PackageProjectUrl>https://github.com/slang25/AotAnywhere</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
 
-    <!-- Zig is only needed to build the shims at pack time (PrivateAssets),
-         so the package itself has no dependencies to express. -->
+    <!-- The host Clang and target sysroot content packages are restored through
+         the SDK props entry point at consumer restore time. -->
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
 
-    <!-- build/ZigVersion.props is imported explicitly by Crosscompile.targets,
+    <!-- build/ClangToolchainVersion.props is imported explicitly by Crosscompile.targets,
          not through NuGet's build/<id>.props auto-import convention. Its
          presence makes NuGet note the (intentional) absence of a conventional
          build/StuDev.AotAnywhere.props; the package's auto-import entry point is
@@ -38,7 +38,7 @@
       <Pack>true</Pack>
       <PackagePath>build</PackagePath>
     </None>
-    <None Include="ZigVersion.props">
+    <None Include="ClangToolchainVersion.props">
       <Pack>true</Pack>
       <PackagePath>build</PackagePath>
     </None>
@@ -58,12 +58,6 @@
          (referenced via $(MSBuildThisFileDirectory)); must sit next to the
          targets in build/. -->
     <None Include="aotanywhere-gs-pad.c">
-      <Pack>true</Pack>
-      <PackagePath>build</PackagePath>
-    </None>
-    <!-- MSVC glue compiled into every Windows link by the AotAnywhereWindowsLink
-         task (referenced via $(MSBuildThisFileDirectory)); must sit in build/. -->
-    <None Include="aotanywhere-msvc-glue.c">
       <Pack>true</Pack>
       <PackagePath>build</PackagePath>
     </None>
@@ -118,13 +112,28 @@
                    Find="__AOTANYWHERE_PACKAGE_VERSION__"
                    ReplaceWith="$(Version)" />
 
-    <!-- Bake the single ZigVersion pin (from ZigVersion.props, imported above)
-         into the placeholder so Sdk.props carries no second copy of the
-         literal. -->
+    <!-- Bake the toolchain pins into Sdk.props so its restore-time references
+         carry no second copy of the literals. -->
+    <ReplaceInFile Source="$(_BakedSdkProps)"
+                  Destination="$(_BakedSdkProps)"
+                  Find="__AOTANYWHERE_CLANG_TOOLSET_VERSION__"
+                  ReplaceWith="$(AotAnywhereClangToolsetVersion)" />
+    <ReplaceInFile Source="$(_BakedSdkProps)"
+                  Destination="$(_BakedSdkProps)"
+                  Find="__AOTANYWHERE_LINUX_SYSROOT_VERSION__"
+                  ReplaceWith="$(AotAnywhereLinuxSysrootVersion)" />
+    <ReplaceInFile Source="$(_BakedSdkProps)"
+                  Destination="$(_BakedSdkProps)"
+                  Find="__AOTANYWHERE_WINDOWS_CROSS_LINK_VERSION__"
+                  ReplaceWith="$(AotAnywhereWindowsCrossLinkVersion)" />
     <ReplaceInFile Source="$(_BakedSdkProps)"
                    Destination="$(_BakedSdkProps)"
-                   Find="__AOTANYWHERE_ZIG_VERSION__"
-                   ReplaceWith="$(ZigVersion)" />
+                   Find="__AOTANYWHERE_LINUX_MUSL_ARM_SYSROOT_AVAILABLE__"
+                   ReplaceWith="$(AotAnywhereLinuxMuslArmSysrootAvailable)" />
+    <ReplaceInFile Source="$(_BakedSdkProps)"
+                  Destination="$(_BakedSdkProps)"
+                  Find="__AOTANYWHERE_WINDOWS_CROSS_LINK_AVAILABLE__"
+                  ReplaceWith="$(AotAnywhereWindowsCrossLinkAvailable)" />
 
     <ItemGroup>
       <None Include="$(_BakedSdkProps)">
