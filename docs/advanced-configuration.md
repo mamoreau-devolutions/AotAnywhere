@@ -33,11 +33,19 @@ It must contain `usr/` and a GCC support-library tree under `usr/lib/gcc` or
 `usr/lib64/gcc`. For Windows cross-links, set `AotAnywhereMsvcPath` and
 `AotAnywhereWindowsSdkPath` to roots produced by
 `eng/export-windows-crosslink.ps1` /
-`eng/import-windows-crosslink.ps1` (see
+`eng/import-windows-crosslink.ps1`, or produced by
+[xwin](https://github.com/Jake-Shadle/xwin) on any host (see
 [windows-crosslink-cache.md](windows-crosslink-cache.md)):
 
-- `AotAnywhereMsvcPath` must contain `lib/{x64,arm64}`
-- `AotAnywhereWindowsSdkPath` must contain `Lib/<10.*>/{ucrt,um}/{x64,arm64}`
+- `AotAnywhereMsvcPath` must contain `lib/{x64,arm64}` (or
+  `lib/{x86_64,aarch64}`, the LLVM directory notation xwin uses by default),
+  or be an xwin `--use-winsysroot-style` root — the link task then resolves
+  `VC/Tools/MSVC/<crt-version>/lib/<arch>` itself
+- `AotAnywhereWindowsSdkPath` must contain `Lib/<10.*/>{ucrt,um}/{x64,arm64}`
+  (export/import cache and xwin winsysroot), a lower-case `lib/10.*/...`
+  variant, or the version-less `lib/{ucrt,um}/<arch>` xwin default layout — an
+  xwin winsysroot root itself is also accepted and the
+  `Windows Kits/10/Lib` subtree resolved automatically
 
 Plain `PackageReference` consumption cannot restore the toolchain references on
 its first restore because NuGet does not evaluate build targets early enough.

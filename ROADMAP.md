@@ -8,9 +8,11 @@
    packages, including both ARMv7 RIDs, and verify their complete
    host-by-target matrix.
 3. Keep non-Windows Windows links on private MSVC/Windows SDK library caches
-   produced by `eng/export-windows-crosslink.ps1` (Microsoft assets are not
-   redistributed in AotAnywhere packages). Optionally automate export/import in
-   CI once a durable private cache is available.
+   produced by `eng/export-windows-crosslink.ps1` or by
+   [xwin](https://github.com/Jake-Shadle/xwin) straight from Microsoft's
+   channels (Microsoft assets are not redistributed in AotAnywhere packages).
+   Optionally automate production in CI once a durable private cache is
+   available.
 
 ## Quality and maintenance
 
