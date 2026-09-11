@@ -35,7 +35,8 @@ It must contain `usr/` and a GCC support-library tree under `usr/lib/gcc` or
 `eng/export-windows-crosslink.ps1` /
 `eng/import-windows-crosslink.ps1`, or produced by
 [xwin](https://github.com/Jake-Shadle/xwin) on any host (see
-[windows-crosslink-cache.md](windows-crosslink-cache.md)):
+[windows-crosslink-cache.md](windows-crosslink-cache.md)); the external
+`lld-link` must be LLVM 21 or later (the ILC packs emit `/NOEXP`):
 
 - `AotAnywhereMsvcPath` must contain `lib/{x64,arm64}` (or
   `lib/{x86_64,aarch64}`, the LLVM directory notation xwin uses by default),

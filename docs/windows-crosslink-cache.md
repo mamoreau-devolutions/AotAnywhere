@@ -163,9 +163,8 @@ accepts xwin's output directly:
 ```sh
 cargo install xwin --locked
 
-xwin splat --accept-license --preserve-ms-arch-notation \
-  --arch x86_64 --arch aarch64 \
-  --output /path/to/win-crosslink
+xwin --accept-license --arch x86_64 --arch aarch64 splat \
+  --preserve-ms-arch-notation --output /path/to/win-crosslink
 ```
 
 Then publish with the xwin roots:
@@ -181,6 +180,8 @@ Notes:
 - `--preserve-ms-arch-notation` keeps the `x64`/`arm64` directory names;
   without it, xwin produces the LLVM notation (`x86_64`/`aarch64`), which the
   task also accepts. Mixed notation across the two roots works as well.
+- `--accept-license` and `--arch` are global options and must precede the
+  `splat` subcommand.
 - `--use-winsysroot-style` also works. Either pass the winsysroot root itself
   for both properties (`AotAnywhereMsvcPath=<out>` — the task descends into
   `VC/Tools/MSVC/<crt-version>/lib` and `Windows Kits/10/Lib`), or the
@@ -193,6 +194,11 @@ Notes:
   trees, and derive the cache key from the pinned versions like the export
   script does. The default splat also includes headers, which the link step
   does not need; they can be pruned afterwards.
+- With `UseExternalClang=true`, the host's `lld-link` must be LLVM 21+ (the
+  ILC packs emit `/NOEXP`, which lld gained in 21; the packaged Clang 22.1.4
+  toolset satisfies this without any extra setup). Note the takeover's lld-link
+  can never honor `/SOURCELINK` (no lld version implements it; MSVC-only), so
+  the task drops it — cross-linked PDBs simply have no source-link blob.
 - The redistribution constraints above apply equally: keep the produced tree
   private (Actions cache, private artifact, private blob storage).
 

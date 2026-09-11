@@ -11,13 +11,18 @@
    produced by `eng/export-windows-crosslink.ps1` or by
    [xwin](https://github.com/Jake-Shadle/xwin) straight from Microsoft's
    channels (Microsoft assets are not redistributed in AotAnywhere packages).
-   Optionally automate production in CI once a durable private cache is
-   available.
+   PR CI mints an xwin-produced tree itself
+   (see `.github/workflows/cross-platform-validation.yml`); swapping the smoke
+   test to the published cross-link package remains open until a durable
+   private cache is available.
 
 ## Quality and maintenance
 
 5. Run real Linux, macOS, and Windows integration publishes from fresh package
    feeds after all content packages are available.
 6. Keep the Apple stub generator current with new .NET runtime packs.
+6. Keep the Apple stub generator current with new .NET runtime packs.
 7. Extend the Windows link task tests with a real cross-link bundle and verify
-   PDB, `/OPT`, and `/MERGE` behavior.
+   PDB, `/OPT`, and `/MERGE` behavior. (The
+   `windows-crosslink-smoke` CI job covers the integration side end to end —
+   PE machine types, PDB, imports; unit-level task assertions remain open.)

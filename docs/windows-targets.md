@@ -22,6 +22,7 @@ or produce the equivalent tree on any host with
 xwin invocation, the GitHub Actions cache pattern, and licensing constraints.
 
 This preserves the NativeAOT runtime's MSVC ABI and lets `lld-link` honor
-`/MERGE`, `/OPT:REF`, and `/OPT:ICF` directly. The output imports the Universal
-CRT and includes a PDB copied to the publish directory. On Windows hosts,
-`win-*` targets continue to use the .NET SDK's native MSVC link path.
+`/MERGE`, `/OPT:REF`, and `/OPT:ICF` directly (the takeover's `lld-link` never
+sees `/SOURCELINK`, which no lld version implements). The output imports the
+Universal CRT and includes a PDB copied to the publish directory. On Windows
+hosts, `win-*` targets continue to use the .NET SDK's native MSVC link path.

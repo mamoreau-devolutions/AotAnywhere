@@ -60,6 +60,12 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
                                  arg.StartsWith("-MACHINE:", StringComparison.OrdinalIgnoreCase)))
                 args.Add("/MACHINE:" + machine);
 
+            // lld does not implement /SOURCELINK (MSVC-only); it would treat
+            // the argument as an input file and fail the link. The PDB loses
+            // the source-link blob, which no lld version can produce anyway.
+            args.RemoveAll(arg => arg.StartsWith("/SOURCELINK:", StringComparison.OrdinalIgnoreCase) ||
+                                  arg.StartsWith("-SOURCELINK:", StringComparison.OrdinalIgnoreCase));
+
             args.Add("/LIBPATH:" + msvcLibDir);
             args.Add("/LIBPATH:" + ucrtLibDir);
             args.Add("/LIBPATH:" + umLibDir);
