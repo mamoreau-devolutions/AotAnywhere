@@ -71,3 +71,65 @@ jobs:
           dotnet publish test/Hello.csproj -r linux-x64 -c Release \
             -p:UseExternalClang=true -p:AotAnywhereLinuxSysroot=/
           test/bin/Release/net8.0/linux-x64/publish/Hello
+
+  windows-crosslink-smoke:
+    runs-on: ubuntu-latest
+    name: Windows cross-link smoke test
+    # Exercises the non-Windows Windows-target takeover (lld-link + the
+    # AotAnywhereWindowsLink task) end to end. The MSVC/Windows SDK import
+    # libraries come straight from xwin (no licensed Windows install), and the
+    # linker is the same pinned LLVM 22.1.4 toolset the published Clang
+    # toolset packages carry. See docs/windows-crosslink-cache.md.
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          # win-x64 publishes as net8.0, win-arm64 as net10.0 (newest
+          # link.rsp shape). The default (highest) SDK hosts both.
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Install the pinned LLVM 22.1.4 toolset
+        run: |
+          # Same artifact the StuDev.AotAnywhere.Clang.Toolsets.linux-x64
+          # package carries (eng/toolchain-artifacts.json). lld-link must be
+          # LLVM 21+ (the ILC packs emit /NOEXP).
+          curl -fsSL -o "$RUNNER_TEMP/llvm.tar.xz" \
+            https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-Linux-X64.tar.xz
+          echo "cdf232e3bc5d9909ddcf8cb7016802c6745a01e69a596747c684caa894a11567  $RUNNER_TEMP/llvm.tar.xz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/llvm"
+          tar -xJf "$RUNNER_TEMP/llvm.tar.xz" -C "$RUNNER_TEMP/llvm" --strip-components=1
+      - name: Produce the MSVC/Windows SDK libraries with xwin
+        run: |
+          curl -fsSL -o /tmp/xwin.tar.gz \
+            https://github.com/Jake-Shadle/xwin/releases/download/0.10.0/xwin-0.10.0-x86_64-unknown-linux-musl.tar.gz
+          echo "d870eb4b2f390878af6da1ccd3cf321d22fcb72720984853b4be732ae597fc88  /tmp/xwin.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/xwin.tar.gz -C /tmp
+          # The CRT/SDK revisions are the latest Microsoft publishes at run
+          # time (pin with --manifest for reproducibility; see
+          # docs/windows-crosslink-cache.md).
+          /tmp/xwin-0.10.0-x86_64-unknown-linux-musl/xwin \
+            --accept-license --arch x86_64 --arch aarch64 splat \
+            --preserve-ms-arch-notation --output "$RUNNER_TEMP/win-crosslink"
+      - name: Build the link task
+        run: dotnet build src/tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj -c Release
+      - name: Publish win-x64 and win-arm64
+        run: |
+          for rid in win-x64 win-arm64; do
+            dotnet publish test/Hello.csproj -r $rid -c Release \
+              -p:UseExternalClang=true \
+              -p:AotAnywhereClangPath="$RUNNER_TEMP/llvm" \
+              -p:AotAnywhereMsvcPath="$RUNNER_TEMP/win-crosslink/crt" \
+              -p:AotAnywhereWindowsSdkPath="$RUNNER_TEMP/win-crosslink/sdk"
+          done
+      - name: Inspect the produced PE images
+        run: |
+          # Assert the PE machine types and that the Windows cross-link
+          # takeover handed the PDBs to the publish directory
+          # (CopyOutputSymbolsToPublishDirectory).
+          file test/bin/Release/net8.0/win-x64/publish/Hello.exe
+          file test/bin/Release/net8.0/win-x64/publish/Hello.exe | grep -q 'x86-64'
+          file test/bin/Release/net10.0/win-arm64/publish/Hello.exe
+          file test/bin/Release/net10.0/win-arm64/publish/Hello.exe | grep -qi 'aarch64'
+          test -f test/bin/Release/net8.0/win-x64/publish/Hello.pdb
+          test -f test/bin/Release/net10.0/win-arm64/publish/Hello.pdb

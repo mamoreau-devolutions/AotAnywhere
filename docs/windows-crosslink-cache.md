@@ -152,6 +152,56 @@ Release libraries only (unless `-IncludeDebug`):
 Headers and compiler binaries are intentionally omitted; Clang/`lld-link` only
 need the import libraries for Native AOT link.
 
+## Alternative: produce the tree with [xwin](https://github.com/Jake-Shadle/xwin)
+
+[xwin](https://github.com/Jake-Shadle/xwin) downloads the CRT and Windows SDK
+import libraries straight from Microsoft's channels and unpacks them on any
+host — no licensed Windows install or Visual Studio toolset required (the
+licensing acknowledgement is `--accept-license`). AotAnywhere's link task
+accepts xwin's output directly:
+
+```sh
+cargo install xwin --locked
+
+xwin --accept-license --arch x86_64 --arch aarch64 splat \
+  --preserve-ms-arch-notation --output /path/to/win-crosslink
+```
+
+Then publish with the xwin roots:
+
+```bash
+dotnet publish -r win-x64 \
+  -p:AotAnywhereMsvcPath=/path/to/win-crosslink/crt \
+  -p:AotAnywhereWindowsSdkPath=/path/to/win-crosslink/sdk
+```
+
+Notes:
+
+- `--preserve-ms-arch-notation` keeps the `x64`/`arm64` directory names;
+  without it, xwin produces the LLVM notation (`x86_64`/`aarch64`), which the
+  task also accepts. Mixed notation across the two roots works as well.
+- `--accept-license` and `--arch` are global options and must precede the
+  `splat` subcommand.
+- `--use-winsysroot-style` also works. Either pass the winsysroot root itself
+  for both properties (`AotAnywhereMsvcPath=<out>` — the task descends into
+  `VC/Tools/MSVC/<crt-version>/lib` and `Windows Kits/10/Lib`), or the
+  individual `<out>/VC/Tools/MSVC/<crt-version>` and `<out>/Windows Kits/10`
+  directories.
+- When the restored library root comes from `AotAnywhereWindowsCrossLinkPath`,
+  the plain xwin layout (`crt/` + `sdk/`) and a winsysroot root are detected in
+  addition to the `vctools/` + `winsdk/` export layout.
+- Pin `--manifest` (or `--crt-version` / `--sdk-version`) for reproducible
+  trees, and derive the cache key from the pinned versions like the export
+  script does. The default splat also includes headers, which the link step
+  does not need; they can be pruned afterwards.
+- With `UseExternalClang=true`, the host's `lld-link` must be LLVM 21+ (the
+  ILC packs emit `/NOEXP`, which lld gained in 21; the packaged Clang 22.1.4
+  toolset satisfies this without any extra setup). Note the takeover's lld-link
+  can never honor `/SOURCELINK` (no lld version implements it; MSVC-only), so
+  the task drops it — cross-linked PDBs simply have no source-link blob.
+- The redistribution constraints above apply equally: keep the produced tree
+  private (Actions cache, private artifact, private blob storage).
+
 ## Licensing
 
 - Export only from a machine/account licensed for Visual Studio and the Windows

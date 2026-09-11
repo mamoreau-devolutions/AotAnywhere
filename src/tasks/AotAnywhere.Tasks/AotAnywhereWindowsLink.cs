@@ -37,13 +37,20 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
 
         try
         {
-            var (ucrtLibDir, umLibDir) = ResolveWindowsSdkLibraryDirectories();
-            var msvcLibDir = Path.Combine(MsvcPath, "lib", ToSdkArchitecture(TargetArchitecture));
-            if (!Directory.Exists(msvcLibDir))
+            var msvcLibDir = WindowsCrossLinkLayout.ResolveMsvcLibraryDirectory(MsvcPath, TargetArchitecture);
+            if (msvcLibDir == null)
             {
-                Log.LogError($"AotAnywhere: MSVC library directory '{msvcLibDir}' does not exist.");
+                Log.LogError($"AotAnywhere: no MSVC library directory for '{TargetArchitecture}' under '{MsvcPath}'. Expected '<path>/lib/{{x64,arm64}}' (or x86_64/aarch64), or an xwin --use-winsysroot-style '<path>/VC/Tools/MSVC/<version>/lib/<arch>' tree.");
                 return false;
             }
+
+            var sdkLibraries = WindowsCrossLinkLayout.ResolveWindowsSdkLibraries(WindowsSdkPath, TargetArchitecture);
+            if (sdkLibraries == null)
+            {
+                Log.LogError($"AotAnywhere: no Windows SDK UCRT/UM library directories for '{TargetArchitecture}' under '{WindowsSdkPath}'. Expected '<path>/Lib/10.*/{{ucrt,um}}/<arch>' (a lower-case lib or the version-less xwin default also work), or an xwin --use-winsysroot-style '<path>/Windows Kits/10/Lib/...' tree.");
+                return false;
+            }
+            var (ucrtLibDir, umLibDir) = sdkLibraries.Value;
 
             Directory.CreateDirectory(SupportDir);
             var umAliasDir = CreateCaseInsensitiveAliases(umLibDir);
@@ -52,6 +59,12 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
             if (!args.Any(arg => arg.StartsWith("/MACHINE:", StringComparison.OrdinalIgnoreCase) ||
                                  arg.StartsWith("-MACHINE:", StringComparison.OrdinalIgnoreCase)))
                 args.Add("/MACHINE:" + machine);
+
+            // lld does not implement /SOURCELINK (MSVC-only); it would treat
+            // the argument as an input file and fail the link. The PDB loses
+            // the source-link blob, which no lld version can produce anyway.
+            args.RemoveAll(arg => arg.StartsWith("/SOURCELINK:", StringComparison.OrdinalIgnoreCase) ||
+                                  arg.StartsWith("-SOURCELINK:", StringComparison.OrdinalIgnoreCase));
 
             args.Add("/LIBPATH:" + msvcLibDir);
             args.Add("/LIBPATH:" + ucrtLibDir);
@@ -69,27 +82,6 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
             Log.LogError($"AotAnywhere: could not prepare the lld-link invocation: {e.Message}");
             return false;
         }
-    }
-
-    (string Ucrt, string Um) ResolveWindowsSdkLibraryDirectories()
-    {
-        var sdkLibRoot = Path.Combine(WindowsSdkPath, "Lib");
-        if (!Directory.Exists(sdkLibRoot))
-            throw new DirectoryNotFoundException($"Windows SDK library root '{sdkLibRoot}' does not exist.");
-
-        var sdkVersionDir = Directory.EnumerateDirectories(sdkLibRoot, "10.*")
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .LastOrDefault();
-        if (sdkVersionDir == null)
-            throw new DirectoryNotFoundException($"No Windows 10 SDK library directory exists under '{sdkLibRoot}'.");
-
-        var architecture = ToSdkArchitecture(TargetArchitecture);
-        var ucrt = Path.Combine(sdkVersionDir, "ucrt", architecture);
-        var um = Path.Combine(sdkVersionDir, "um", architecture);
-        if (!Directory.Exists(ucrt) || !Directory.Exists(um))
-            throw new DirectoryNotFoundException($"Windows SDK '{sdkVersionDir}' does not contain UCRT and UM libraries for '{architecture}'.");
-
-        return (ucrt, um);
     }
 
     string? CreateCaseInsensitiveAliases(string umLibDir)
@@ -153,14 +145,6 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
             "x86_64" => "X64",
             "aarch64" => "ARM64",
             _ => null,
-        };
-
-    static string ToSdkArchitecture(string architecture) =>
-        architecture switch
-        {
-            "x86_64" => "x64",
-            "aarch64" => "arm64",
-            _ => architecture,
         };
 
     static string QuoteResponseArgument(string argument)
