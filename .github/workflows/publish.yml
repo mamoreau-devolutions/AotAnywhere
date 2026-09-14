@@ -156,7 +156,13 @@ jobs:
           & "$env:GITHUB_WORKSPACE\eng\build-windows-sdk-imports.ps1" `
             -DllRoot "$env:SystemRoot\System32" `
             -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
-            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin"
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin" `
+            -Architecture x64
+          & "$env:GITHUB_WORKSPACE\eng\build-windows-sdk-imports.ps1" `
+            -DllRoot "$env:SystemRoot\System32" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin" `
+            -Architecture arm64
       - name: Pack
         shell: bash
         run: |

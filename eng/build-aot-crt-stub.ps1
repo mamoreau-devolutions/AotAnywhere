@@ -12,11 +12,31 @@ $ErrorActionPreference = 'Stop'
 if (-not (Test-Path -LiteralPath $SourceDirectory -PathType Container)) {
     throw "NativeAOT CRT stub source directory does not exist: $SourceDirectory"
 }
-$clang = (Get-Command clang-cl.exe -ErrorAction Stop).Source
-$llvmLib = (Get-Command llvm-lib.exe -ErrorAction Stop).Source
-$ml64 = (Get-Command ml64.exe -ErrorAction Stop).Source
-$armasm = (Get-Command armasm64.exe -ErrorAction Stop).Source
-$dllTool = (Get-Command llvm-dlltool.exe -ErrorAction Stop).Source
+# armasm64.exe lives under the MSVC toolset's Host*\arm64 bin directory, which
+# msvc-dev-cmd does not add to PATH when the active host/target arch is x64.
+# Resolve it explicitly from VCToolsInstallDir instead of relying on PATH.
+function Resolve-Tool([string] $name, [string[]] $extraSearchDirs = @()) {
+    $cmd = Get-Command $name -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    foreach ($dir in $extraSearchDirs) {
+        if (-not $dir) { continue }
+        $found = Get-ChildItem -LiteralPath $dir -Filter $name -Recurse -File -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+        if ($found) { return $found.FullName }
+    }
+    throw "Could not locate required tool '$name' on PATH or under: $($extraSearchDirs -join ', ')"
+}
+
+$armasmSearchDirs = @()
+if ($env:VCToolsInstallDir) {
+    $armasmSearchDirs += (Join-Path $env:VCToolsInstallDir 'bin')
+}
+
+$clang = Resolve-Tool 'clang-cl.exe'
+$llvmLib = Resolve-Tool 'llvm-lib.exe'
+$ml64 = Resolve-Tool 'ml64.exe'
+$armasm = Resolve-Tool 'armasm64.exe' $armasmSearchDirs
+$dllTool = Resolve-Tool 'llvm-dlltool.exe'
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 $sourceFiles = @('aotcrtstub.c', 'aotcrtstubcpp.cpp', 'aotcrtstub_amd64.asm', 'aotcrtstub_arm64.asm', 'ntdllcrt.def')

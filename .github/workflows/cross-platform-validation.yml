@@ -108,7 +108,13 @@ jobs:
           ./eng/build-windows-sdk-imports.ps1 `
             -DllRoot "$env:SystemRoot\System32" `
             -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
-            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin"
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin" `
+            -Architecture x64
+          ./eng/build-windows-sdk-imports.ps1 `
+            -DllRoot "$env:SystemRoot\System32" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin" `
+            -Architecture arm64
       - name: Pack AotAnywhere with generated symbol-only inputs
         shell: pwsh
         run: |
