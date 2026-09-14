@@ -217,15 +217,19 @@ jobs:
           unzip -q "$RUNNER_TEMP/package/StuDev.AotAnywhere.0.0.0-ci.nupkg" -d "$RUNNER_TEMP/package/extracted"
           test -f "$RUNNER_TEMP/package/extracted/build/aot-crt-stub/x86_64/aotcrtstub.lib"
           test -f "$RUNNER_TEMP/package/extracted/build/windows-sdk-imports/Lib/um/x86_64/kernel32.lib"
-          brew install llvm
+          # Homebrew's llvm formula no longer bundles LLD (lld-link included);
+          # it now lives in the separate "lld" formula.
+          brew install llvm lld
       - name: Build the link task
         run: dotnet build src/tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj -c Release
       - name: Publish win-x64 with the package payload
         run: |
           llvm="$(brew --prefix llvm)"
+          lld="$(brew --prefix lld)"
           dotnet publish test/Hello.csproj -r win-x64 -c Release \
             -p:UseExternalClang=true \
             -p:AotAnywhereClangPath="$llvm" \
+            -p:AotAnywhereLldLinkExe="$lld/bin/lld-link" \
             -p:UseAotCrtStub=true \
             -p:AotAnywhereAotCrtStubPath="$RUNNER_TEMP/package/extracted/build/aot-crt-stub/x86_64" \
             -p:AotAnywhereWindowsSdkPath="$RUNNER_TEMP/package/extracted/build/windows-sdk-imports"

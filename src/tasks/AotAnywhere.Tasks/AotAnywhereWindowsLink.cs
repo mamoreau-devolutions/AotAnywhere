@@ -76,6 +76,13 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
             args.RemoveAll(arg => arg.StartsWith("/SOURCELINK:", StringComparison.OrdinalIgnoreCase) ||
                                   arg.StartsWith("-SOURCELINK:", StringComparison.OrdinalIgnoreCase));
 
+            // The SDK also emits /NOEXP (skip generating a .exp file), which
+            // is a real link.exe switch but is not implemented by lld-link
+            // (unlike /NOIMPLIB, which lld does support). Without stripping
+            // it, lld-link treats "/NOEXP" as a missing input file and fails.
+            args.RemoveAll(arg => string.Equals(arg, "/NOEXP", StringComparison.OrdinalIgnoreCase) ||
+                                  string.Equals(arg, "-NOEXP", StringComparison.OrdinalIgnoreCase));
+
             if (msvcLibDir != null) args.Add("/LIBPATH:" + msvcLibDir);
             args.Add("/LIBPATH:" + ucrtLibDir);
             args.Add("/LIBPATH:" + umLibDir);
@@ -107,6 +114,25 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
             {
                 args.Add("/NODEFAULTLIB:libcmt.lib");
                 args.Add("/NODEFAULTLIB:libvcruntime.lib");
+                // OLDNAMES.lib and libcpmt.lib are requested via /DEFAULTLIB
+                // directives embedded in the precompiled NativeAOT
+                // bootstrapper objects/libs (built by Microsoft with real
+                // MSVC). They are classic CRT-compatibility libraries with
+                // no counterpart in the redistributable CRT stub; the stub's
+                // aotcrtstub.lib/ntdllcrt.lib already supply the symbols
+                // NativeAOT actually needs, so exclude both explicitly.
+                args.Add("/NODEFAULTLIB:oldnames.lib");
+                args.Add("/NODEFAULTLIB:libcpmt.lib");
+                // uuid.lib is a *static* Windows SDK library of compiled-in
+                // GUID/IID constants (e.g. IID_IUnknown) -- it is not an
+                // import library backed by any DLL, so it cannot be
+                // regenerated from dumpbin/dlltool the way the other Windows
+                // SDK libraries are. It is requested defensively by the
+                // precompiled NativeAOT objects; excluding it is safe unless
+                // the link later reports an unresolved GUID symbol, in which
+                // case that specific constant would need to be supplied by a
+                // small hand-written replacement static library instead.
+                args.Add("/NODEFAULTLIB:uuid.lib");
             }
             File.WriteAllLines(responseFile, args.Select(QuoteResponseArgument), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
