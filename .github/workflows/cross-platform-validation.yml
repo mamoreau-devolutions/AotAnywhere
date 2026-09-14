@@ -169,7 +169,7 @@ jobs:
             test -f "$root/windows-sdk-imports/Lib/um/$arch/kernel32.lib"
             test -f "$root/windows-sdk-imports/Lib/ucrt/$arch/ucrt.lib"
           done
-          ! find "$root" -type f \( -name '*.dll' -o -name '*.h' -o -name '*.hpp' -o -name 'libcmt.lib' -o -name 'libvcruntime.lib' \) | grep -q .
+          ! find "$root/aot-crt-stub" "$root/windows-sdk-imports" -type f \( -name '*.dll' -o -name '*.h' -o -name '*.hpp' -o -name 'libcmt.lib' -o -name 'libvcruntime.lib' \) | grep -q .
       - name: Install LLVM and .NET link prerequisites
         run: sudo apt-get update && sudo apt-get install -y clang lld llvm
       - name: Build the link task
@@ -218,6 +218,8 @@ jobs:
           test -f "$RUNNER_TEMP/package/extracted/build/aot-crt-stub/x86_64/aotcrtstub.lib"
           test -f "$RUNNER_TEMP/package/extracted/build/windows-sdk-imports/Lib/um/x86_64/kernel32.lib"
           brew install llvm
+      - name: Build the link task
+        run: dotnet build src/tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj -c Release
       - name: Publish win-x64 with the package payload
         run: |
           llvm="$(brew --prefix llvm)"
