@@ -141,6 +141,7 @@ jobs:
           $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
           "PATH=$env:RUNNER_TEMP\llvm\bin;$env:PATH" >> $env:GITHUB_ENV
           git clone --filter=blob:none --no-checkout https://github.com/awakecoding/runtime.git "$env:RUNNER_TEMP\runtime"
+          git -C "$env:RUNNER_TEMP\runtime" sparse-checkout set --cone src/coreclr/nativeaot/Runtime/aotcrtstub
           git -C "$env:RUNNER_TEMP\runtime" checkout --detach ba0c43c17535ff23bda655bf4300b8514e7ccf67
 
       - name: Build package-owned Windows cross-link inputs
