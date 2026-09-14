@@ -137,11 +137,6 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
             File.WriteAllLines(responseFile, args.Select(QuoteResponseArgument), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
             Log.LogMessage(MessageImportance.Normal, $"AotAnywhere: {LldLinkExe} @{responseFile}");
-            // TODO(diagnostic, remove once the CI cross-link smoke tests are
-            // green): dump the full response file so unexpected linker
-            // arguments (e.g. embedded /DEFAULTLIB directives that need
-            // /NODEFAULTLIB overrides) are visible in CI logs.
-            Log.LogMessage(MessageImportance.High, "AotAnywhere: lld-link response file contents:\n" + File.ReadAllText(responseFile));
             return RunLldLink(responseFile);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
