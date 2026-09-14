@@ -72,14 +72,60 @@ jobs:
             -p:UseExternalClang=true -p:AotAnywhereLinuxSysroot=/
           test/bin/Release/net8.0/linux-x64/publish/Hello
 
+  windows-crosslink-package:
+    runs-on: windows-latest
+    name: Build redistributable Windows cross-link package
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install pinned LLVM toolset
+        shell: pwsh
+        run: |
+          $url = 'https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-x86_64-windows.tar.xz'
+          Invoke-WebRequest $url -OutFile "$env:RUNNER_TEMP\llvm.tar.xz"
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\llvm" | Out-Null
+          tar -xf "$env:RUNNER_TEMP\llvm.tar.xz" -C "$env:RUNNER_TEMP\llvm" --strip-components=1
+          $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
+          "PATH=$env:RUNNER_TEMP\llvm\bin;$env:PATH" >> $env:GITHUB_ENV
+      - name: Fetch pinned CRT-stub sources
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/awakecoding/runtime.git "$env:RUNNER_TEMP\runtime"
+          git -C "$env:RUNNER_TEMP\runtime" checkout --detach ba0c43c17535ff23bda655bf4300b8514e7ccf67
+      - name: Build CRT stubs and Windows SDK import libraries
+        shell: pwsh
+        run: |
+          ./eng/build-aot-crt-stub.ps1 `
+            -SourceDirectory "$env:RUNNER_TEMP\runtime\src\coreclr\nativeaot\Runtime\aotcrtstub" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\aot-crt-stub"
+          ./eng/build-windows-sdk-imports.ps1 `
+            -DllRoot "$env:SystemRoot\System32" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin"
+      - name: Pack AotAnywhere with generated symbol-only inputs
+        shell: pwsh
+        run: |
+          dotnet build -t:Pack src/AotAnywhere.nuproj -p:Version=0.0.0-ci `
+            -p:AotAnywhereAotCrtStubPayloadDir="$env:RUNNER_TEMP\payload\aot-crt-stub" `
+            -p:AotAnywhereWindowsSdkImportsPayloadDir="$env:RUNNER_TEMP\payload\windows-sdk-imports"
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\package" | Out-Null
+          Copy-Item src\bin\Debug\StuDev.AotAnywhere.0.0.0-ci.nupkg "$env:RUNNER_TEMP\package\"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-crosslink-package
+          path: ${{ runner.temp }}/package/StuDev.AotAnywhere.0.0-ci.nupkg
+          if-no-files-found: error
+
   windows-crosslink-smoke:
     runs-on: ubuntu-latest
     name: Windows cross-link smoke test
     # Exercises the non-Windows Windows-target takeover (lld-link + the
-    # AotAnywhereWindowsLink task) end to end. The MSVC/Windows SDK import
-    # libraries come straight from xwin (no licensed Windows install), and the
-    # linker is the same pinned LLVM 22.1.4 toolset the published Clang
-    # toolset packages carry. See docs/windows-crosslink-cache.md.
+    # AotAnywhereWindowsLink task) end to end using only the generated,
+    # package-contained symbol imports and CRT stubs.
+    needs: windows-crosslink-package
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -89,28 +135,25 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
-      - name: Install the pinned LLVM 22.1.4 toolset
+      - name: Download and inspect generated package
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-crosslink-package
+          path: ${{ runner.temp }}/package
+      - name: Extract generated package
         run: |
-          # Same artifact the StuDev.AotAnywhere.Clang.Toolsets.linux-x64
-          # package carries (eng/toolchain-artifacts.json). lld-link must be
-          # LLVM 21+ (the ILC packs emit /NOEXP).
-          curl -fsSL -o "$RUNNER_TEMP/llvm.tar.xz" \
-            https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-Linux-X64.tar.xz
-          echo "cdf232e3bc5d9909ddcf8cb7016802c6745a01e69a596747c684caa894a11567  $RUNNER_TEMP/llvm.tar.xz" | sha256sum -c -
-          mkdir -p "$RUNNER_TEMP/llvm"
-          tar -xJf "$RUNNER_TEMP/llvm.tar.xz" -C "$RUNNER_TEMP/llvm" --strip-components=1
-      - name: Produce the MSVC/Windows SDK libraries with xwin
-        run: |
-          curl -fsSL -o /tmp/xwin.tar.gz \
-            https://github.com/Jake-Shadle/xwin/releases/download/0.10.0/xwin-0.10.0-x86_64-unknown-linux-musl.tar.gz
-          echo "d870eb4b2f390878af6da1ccd3cf321d22fcb72720984853b4be732ae597fc88  /tmp/xwin.tar.gz" | sha256sum -c -
-          tar -xzf /tmp/xwin.tar.gz -C /tmp
-          # The CRT/SDK revisions are the latest Microsoft publishes at run
-          # time (pin with --manifest for reproducibility; see
-          # docs/windows-crosslink-cache.md).
-          /tmp/xwin-0.10.0-x86_64-unknown-linux-musl/xwin \
-            --accept-license --arch x86_64 --arch aarch64 splat \
-            --preserve-ms-arch-notation --output "$RUNNER_TEMP/win-crosslink"
+          mkdir -p "$RUNNER_TEMP/package/extracted"
+          unzip -q "$RUNNER_TEMP/package/StuDev.AotAnywhere.0.0.0-ci.nupkg" -d "$RUNNER_TEMP/package/extracted"
+          root="$RUNNER_TEMP/package/extracted/build"
+          for arch in x86_64 aarch64; do
+            test -f "$root/aot-crt-stub/$arch/aotcrtstub.lib"
+            test -f "$root/aot-crt-stub/$arch/ntdllcrt.lib"
+            test -f "$root/windows-sdk-imports/Lib/um/$arch/kernel32.lib"
+            test -f "$root/windows-sdk-imports/Lib/ucrt/$arch/ucrt.lib"
+          done
+          ! find "$root" -type f \( -name '*.dll' -o -name '*.h' -o -name '*.hpp' -o -name 'libcmt.lib' -o -name 'libvcruntime.lib' \) | grep -q .
+      - name: Install LLVM and .NET link prerequisites
+        run: sudo apt-get update && sudo apt-get install -y clang lld llvm
       - name: Build the link task
         run: dotnet build src/tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj -c Release
       - name: Publish win-x64 and win-arm64
@@ -118,9 +161,10 @@ jobs:
           for rid in win-x64 win-arm64; do
             dotnet publish test/Hello.csproj -r $rid -c Release \
               -p:UseExternalClang=true \
-              -p:AotAnywhereClangPath="$RUNNER_TEMP/llvm" \
-              -p:AotAnywhereMsvcPath="$RUNNER_TEMP/win-crosslink/crt" \
-              -p:AotAnywhereWindowsSdkPath="$RUNNER_TEMP/win-crosslink/sdk"
+              -p:AotAnywhereClangPath=/usr \
+              -p:UseAotCrtStub=true \
+              -p:AotAnywhereAotCrtStubPath="$RUNNER_TEMP/package/extracted/build/aot-crt-stub/$([ "$rid" = "win-x64" ] && echo x86_64 || echo aarch64)" \
+              -p:AotAnywhereWindowsSdkPath="$RUNNER_TEMP/package/extracted/build/windows-sdk-imports"
           done
       - name: Inspect the produced PE images
         run: |
@@ -133,3 +177,36 @@ jobs:
           file test/bin/Release/net10.0/win-arm64/publish/Hello.exe | grep -qi 'aarch64'
           test -f test/bin/Release/net8.0/win-x64/publish/Hello.pdb
           test -f test/bin/Release/net10.0/win-arm64/publish/Hello.pdb
+
+  windows-crosslink-macos-smoke:
+    needs: windows-crosslink-package
+    runs-on: macos-latest
+    name: macOS Windows cross-link smoke test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-crosslink-package
+          path: ${{ runner.temp }}/package
+      - name: Extract package and install LLVM
+        run: |
+          mkdir -p "$RUNNER_TEMP/package/extracted"
+          unzip -q "$RUNNER_TEMP/package/StuDev.AotAnywhere.0.0.0-ci.nupkg" -d "$RUNNER_TEMP/package/extracted"
+          test -f "$RUNNER_TEMP/package/extracted/build/aot-crt-stub/x86_64/aotcrtstub.lib"
+          test -f "$RUNNER_TEMP/package/extracted/build/windows-sdk-imports/Lib/um/x86_64/kernel32.lib"
+          brew install llvm
+      - name: Publish win-x64 with the package payload
+        run: |
+          llvm="$(brew --prefix llvm)"
+          dotnet publish test/Hello.csproj -r win-x64 -c Release \
+            -p:UseExternalClang=true \
+            -p:AotAnywhereClangPath="$llvm" \
+            -p:UseAotCrtStub=true \
+            -p:AotAnywhereAotCrtStubPath="$RUNNER_TEMP/package/extracted/build/aot-crt-stub/x86_64" \
+            -p:AotAnywhereWindowsSdkPath="$RUNNER_TEMP/package/extracted/build/windows-sdk-imports"
+          file test/bin/Release/net8.0/win-x64/publish/Hello.exe | grep -q 'x86-64'

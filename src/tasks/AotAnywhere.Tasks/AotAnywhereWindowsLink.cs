@@ -8,9 +8,9 @@ namespace AotAnywhere.Tasks;
 /// <summary>
 /// Links a NativeAOT Windows target from a non-Windows host by invoking
 /// lld-link with the MSVC-style arguments emitted by the SDK. The task supplies
-/// the MSVC, UCRT, and Windows SDK library paths from AotAnywhere's content
-/// package and creates lower-case aliases for Windows SDK import libraries on
-/// case-sensitive file systems.
+/// the MSVC (unless the NativeAOT CRT stub is enabled), UCRT, and Windows SDK
+/// library paths from AotAnywhere's content package and creates lower-case
+/// aliases for Windows SDK import libraries on case-sensitive file systems.
 /// </summary>
 public sealed class AotAnywhereWindowsLink : MSBuildTask
 {
@@ -23,6 +23,10 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
     [Required] public string MsvcPath { get; set; } = "";
 
     [Required] public string WindowsSdkPath { get; set; } = "";
+
+    public string UseAotCrtStub { get; set; } = "";
+
+    public string AotCrtStubPath { get; set; } = "";
 
     [Required] public string TargetArchitecture { get; set; } = "";
 
@@ -37,11 +41,15 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
 
         try
         {
-            var msvcLibDir = WindowsCrossLinkLayout.ResolveMsvcLibraryDirectory(MsvcPath, TargetArchitecture);
-            if (msvcLibDir == null)
+            string? msvcLibDir = null;
+            if (!string.Equals(UseAotCrtStub, "true", StringComparison.OrdinalIgnoreCase))
             {
-                Log.LogError($"AotAnywhere: no MSVC library directory for '{TargetArchitecture}' under '{MsvcPath}'. Expected '<path>/lib/{{x64,arm64}}' (or x86_64/aarch64), or an xwin --use-winsysroot-style '<path>/VC/Tools/MSVC/<version>/lib/<arch>' tree.");
-                return false;
+                msvcLibDir = WindowsCrossLinkLayout.ResolveMsvcLibraryDirectory(MsvcPath, TargetArchitecture);
+                if (msvcLibDir == null)
+                {
+                    Log.LogError($"AotAnywhere: no MSVC library directory for '{TargetArchitecture}' under '{MsvcPath}'. Expected '<path>/lib/{{x64,arm64}}' (or x86_64/aarch64), or an xwin --use-winsysroot-style '<path>/VC/Tools/MSVC/<version>/lib/<arch>' tree.");
+                    return false;
+                }
             }
 
             var sdkLibraries = WindowsCrossLinkLayout.ResolveWindowsSdkLibraries(WindowsSdkPath, TargetArchitecture);
@@ -66,12 +74,38 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
             args.RemoveAll(arg => arg.StartsWith("/SOURCELINK:", StringComparison.OrdinalIgnoreCase) ||
                                   arg.StartsWith("-SOURCELINK:", StringComparison.OrdinalIgnoreCase));
 
-            args.Add("/LIBPATH:" + msvcLibDir);
+            if (msvcLibDir != null) args.Add("/LIBPATH:" + msvcLibDir);
             args.Add("/LIBPATH:" + ucrtLibDir);
             args.Add("/LIBPATH:" + umLibDir);
             if (umAliasDir != null) args.Add("/LIBPATH:" + umAliasDir);
+            if (string.Equals(UseAotCrtStub, "true", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(AotCrtStubPath))
+            {
+                if (!Directory.Exists(AotCrtStubPath))
+                {
+                    Log.LogError($"AotAnywhere: NativeAOT CRT stub path does not exist: '{AotCrtStubPath}'.");
+                    return false;
+                }
+
+                var stubLibrary = Path.Combine(AotCrtStubPath, "aotcrtstub.lib");
+                var ntdllLibrary = Path.Combine(AotCrtStubPath, "ntdllcrt.lib");
+                if (!File.Exists(stubLibrary) || !File.Exists(ntdllLibrary))
+                {
+                    Log.LogError($"AotAnywhere: NativeAOT CRT stub path must contain aotcrtstub.lib and ntdllcrt.lib: '{AotCrtStubPath}'.");
+                    return false;
+                }
+
+                args.Add("/LIBPATH:" + AotCrtStubPath);
+                args.Add("/DEFAULTLIB:aotcrtstub.lib");
+                args.Add("/DEFAULTLIB:ntdllcrt.lib");
+            }
 
             var responseFile = Path.Combine(SupportDir, "aotanywhere-lld-link.rsp");
+            if (string.Equals(UseAotCrtStub, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                args.Add("/NODEFAULTLIB:libcmt.lib");
+                args.Add("/NODEFAULTLIB:libvcruntime.lib");
+            }
             File.WriteAllLines(responseFile, args.Select(QuoteResponseArgument), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
             Log.LogMessage(MessageImportance.Normal, $"AotAnywhere: {LldLinkExe} @{responseFile}");

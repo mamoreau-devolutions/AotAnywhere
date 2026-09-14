@@ -121,5 +121,29 @@ public class WindowsCrossLinkPathsTests
         }
     }
 
+    [Test]
+    public async Task NativeAotCrtStubDoesNotRequireAnMsvcRoot()
+    {
+        var root = CreateTempDir();
+        try
+        {
+            Create(root, "sdk/lib/ucrt/x86_64",
+                       "sdk/lib/um/x86_64");
+
+            var result = Harness.Run("SetWindowsCrossLinkPaths", new Dictionary<string, string>
+            {
+                ["_AotAnywhereWindowsCross"] = "true",
+                ["UseExternalClang"] = "true",
+                ["UseAotCrtStub"] = "true",
+                ["AotAnywhereWindowsCrossLinkAvailable"] = "false",
+                ["AotAnywhereWindowsSdkPath"] = Path.Combine(root, "sdk"),
+            });
+
+            await Assert.That(result.Success).IsTrue().Because($"SetWindowsCrossLinkPaths failed: {result.ErrorText}");
+            await Assert.That(result.Prop("AotAnywhereMsvcPath")).IsEqualTo("");
+        }
+        finally { Delete(root); }
+    }
+
     static void Delete(string root) => Directory.Delete(root, recursive: true);
 }

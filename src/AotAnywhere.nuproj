@@ -65,6 +65,21 @@
       <Pack>true</Pack>
       <PackagePath>build/apple-sysroot</PackagePath>
     </None>
+    <!-- Optional artifacts produced by the Windows CRT-stub build. The
+         release pipeline supplies AotAnywhereAotCrtStubPayloadDir; ordinary
+         development packs simply omit this experimental content. -->
+    <None Include="$(AotAnywhereAotCrtStubPayloadDir)\**\*"
+          Condition="'$(AotAnywhereAotCrtStubPayloadDir)' != '' and Exists('$(AotAnywhereAotCrtStubPayloadDir)')">
+      <Pack>true</Pack>
+      <PackagePath>build/aot-crt-stub</PackagePath>
+      <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="$(AotAnywhereWindowsSdkImportsPayloadDir)\**\*"
+          Condition="'$(AotAnywhereWindowsSdkImportsPayloadDir)' != '' and Exists('$(AotAnywhereWindowsSdkImportsPayloadDir)')">
+      <Pack>true</Pack>
+      <PackagePath>build/windows-sdk-imports</PackagePath>
+      <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
     <!-- Sdk/Sdk.props is packed by BakeSdkProps below (it needs the version
          substituted); only the static half is a plain pack item. -->
     <None Include="Sdk/Sdk.targets">

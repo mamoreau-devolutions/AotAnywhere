@@ -130,12 +130,37 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install pinned LLVM and fetch CRT-stub sources
+        shell: pwsh
+        run: |
+          $url = 'https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-x86_64-windows.tar.xz'
+          Invoke-WebRequest $url -OutFile "$env:RUNNER_TEMP\llvm.tar.xz"
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\llvm" | Out-Null
+          tar -xf "$env:RUNNER_TEMP\llvm.tar.xz" -C "$env:RUNNER_TEMP\llvm" --strip-components=1
+          $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
+          "PATH=$env:RUNNER_TEMP\llvm\bin;$env:PATH" >> $env:GITHUB_ENV
+          git clone --filter=blob:none --no-checkout https://github.com/awakecoding/runtime.git "$env:RUNNER_TEMP\runtime"
+          git -C "$env:RUNNER_TEMP\runtime" checkout --detach ba0c43c17535ff23bda655bf4300b8514e7ccf67
+
+      - name: Build package-owned Windows cross-link inputs
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\eng\build-aot-crt-stub.ps1" `
+            -SourceDirectory "$env:RUNNER_TEMP\runtime\src\coreclr\nativeaot\Runtime\aotcrtstub" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\aot-crt-stub"
+          & "$env:GITHUB_WORKSPACE\eng\build-windows-sdk-imports.ps1" `
+            -DllRoot "$env:SystemRoot\System32" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin"
       - name: Pack
         shell: bash
         run: |
           version="${{ steps.ver.outputs.version }}"
           echo "Packing StuDev.AotAnywhere $version"
-          dotnet build -t:Pack src/AotAnywhere.nuproj -p:Version="$version"
+          dotnet build -t:Pack src/AotAnywhere.nuproj -p:Version="$version" \
+            -p:AotAnywhereAotCrtStubPayloadDir="$RUNNER_TEMP/payload/aot-crt-stub" \
+            -p:AotAnywhereWindowsSdkImportsPayloadDir="$RUNNER_TEMP/payload/windows-sdk-imports"
           nupkg=$(find src/bin -name "StuDev.AotAnywhere.$version.nupkg" | head -1)
           if [ -z "$nupkg" ]; then echo "::error::packed nupkg not found for $version" >&2; exit 1; fi
           mkdir -p artifacts

@@ -227,6 +227,10 @@
           Condition="'$(_AotAnywhereWindowsCross)' == 'true'">
 
     <PropertyGroup>
+      <_AotAnywhereCrtStubArch Condition="$(RuntimeIdentifier.EndsWith('-x64'))">x86_64</_AotAnywhereCrtStubArch>
+      <_AotAnywhereCrtStubArch Condition="$(RuntimeIdentifier.EndsWith('-arm64'))">aarch64</_AotAnywhereCrtStubArch>
+      <AotAnywhereAotCrtStubPath Condition="'$(AotAnywhereAotCrtStubPath)' == '' and '$(UseAotCrtStub)' == 'true' and '$(_AotAnywhereCrtStubArch)' != ''">$(MSBuildThisFileDirectory)aot-crt-stub/$(_AotAnywhereCrtStubArch)</AotAnywhereAotCrtStubPath>
+      <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and '$(UseAotCrtStub)' == 'true' and Exists('$(MSBuildThisFileDirectory)windows-sdk-imports/Lib')">$(MSBuildThisFileDirectory)windows-sdk-imports</AotAnywhereWindowsSdkPath>
       <AotAnywhereWindowsCrossLinkPath Condition="'$(AotAnywhereWindowsCrossLinkPath)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereWindowsCrossLinkAvailable)' == 'true'">$(PkgStuDev_AotAnywhere_Windows_CrossLink)/tools</AotAnywhereWindowsCrossLinkPath>
       <_AotAnywhereWindowsCrossLinkCacheDir Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true'">$([MSBuild]::NormalizeDirectory('$(NuGetPackageRoot)', 'studev.aotanywhere.windows.crosslink', '$(AotAnywhereWindowsCrossLinkVersion)', 'tools'))</_AotAnywhereWindowsCrossLinkCacheDir>
       <AotAnywhereWindowsCrossLinkPath Condition="'$(AotAnywhereWindowsCrossLinkPath)' == '' and Exists('$(_AotAnywhereWindowsCrossLinkCacheDir)')">$(_AotAnywhereWindowsCrossLinkCacheDir)</AotAnywhereWindowsCrossLinkPath>
@@ -235,17 +239,20 @@
            an xwin "use-winsysroot-style" root (VC/Tools/MSVC + Windows
            Kits/10). The latter two fall back to the root itself; the link task
            (WindowsCrossLinkLayout) descends into those automatically. -->
-      <AotAnywhereMsvcPath Condition="'$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/vctools')">$(AotAnywhereWindowsCrossLinkPath)/vctools</AotAnywhereMsvcPath>
-      <AotAnywhereMsvcPath Condition="'$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/crt')">$(AotAnywhereWindowsCrossLinkPath)/crt</AotAnywhereMsvcPath>
-      <AotAnywhereMsvcPath Condition="'$(AotAnywhereMsvcPath)' == '' and '$(AotAnywhereWindowsCrossLinkPath)' != ''">$(AotAnywhereWindowsCrossLinkPath)</AotAnywhereMsvcPath>
+      <!-- A runtime pack built with NativeAOT's experimental CRT stub
+           supplies the compiler-runtime symbols itself. Do not infer or
+           require an MSVC CRT root in that mode. -->
+      <AotAnywhereMsvcPath Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/vctools')">$(AotAnywhereWindowsCrossLinkPath)/vctools</AotAnywhereMsvcPath>
+      <AotAnywhereMsvcPath Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/crt')">$(AotAnywhereWindowsCrossLinkPath)/crt</AotAnywhereMsvcPath>
+      <AotAnywhereMsvcPath Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == '' and '$(AotAnywhereWindowsCrossLinkPath)' != ''">$(AotAnywhereWindowsCrossLinkPath)</AotAnywhereMsvcPath>
       <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/winsdk')">$(AotAnywhereWindowsCrossLinkPath)/winsdk</AotAnywhereWindowsSdkPath>
       <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/sdk')">$(AotAnywhereWindowsCrossLinkPath)/sdk</AotAnywhereWindowsSdkPath>
       <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and '$(AotAnywhereWindowsCrossLinkPath)' != ''">$(AotAnywhereWindowsCrossLinkPath)</AotAnywhereWindowsSdkPath>
     </PropertyGroup>
 
-    <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' != 'true' and ('$(AotAnywhereMsvcPath)' == '' or '$(AotAnywhereWindowsSdkPath)' == '')"
-              Text="AotAnywhere: non-Windows Windows-target links require external MSVC and Windows SDK library roots. Run eng/export-windows-crosslink.ps1 on a licensed Windows install, restore with eng/import-windows-crosslink.ps1, or produce them with xwin, then set both AotAnywhereMsvcPath and AotAnywhereWindowsSdkPath (see docs/windows-crosslink-cache.md)." />
-    <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereMsvcPath)/lib') and !Exists('$(AotAnywhereMsvcPath)/VC/Tools/MSVC')"
+    <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' != 'true' and ('$(AotAnywhereWindowsSdkPath)' == '' or ('$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == ''))"
+              Text="AotAnywhere: non-Windows Windows-target links require a Windows SDK library root and, unless UseAotCrtStub=true, an external MSVC CRT root. Run eng/export-windows-crosslink.ps1 on a licensed Windows install, restore with eng/import-windows-crosslink.ps1, or produce them with xwin, then set AotAnywhereWindowsSdkPath (and AotAnywhereMsvcPath unless using the NativeAOT CRT stub) (see docs/windows-crosslink-cache.md)." />
+    <Error Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereMsvcPath)/lib') and !Exists('$(AotAnywhereMsvcPath)/VC/Tools/MSVC')"
           Text="AotAnywhere: MSVC cross-link libraries were not restored. Use the MSBuild SDK reference to restore StuDev.AotAnywhere.Windows.CrossLink, add that PackageReference explicitly, or set AotAnywhereMsvcPath (an xwin winsysroot root also works)." />
     <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereWindowsSdkPath)/Lib') and !Exists('$(AotAnywhereWindowsSdkPath)/lib') and !Exists('$(AotAnywhereWindowsSdkPath)/Windows Kits/10/Lib')"
           Text="AotAnywhere: Windows SDK cross-link libraries were not restored. Set AotAnywhereWindowsSdkPath to a compatible Windows SDK root (lower-case Lib, the xwin default, and xwin winsysroot roots also work)." />

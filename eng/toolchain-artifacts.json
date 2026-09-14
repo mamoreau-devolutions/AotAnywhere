@@ -5,36 +5,36 @@
       "hostRuntimeIdentifier": "linux-x64",
       "packageId": "StuDev.AotAnywhere.Clang.Toolsets.linux-x64",
       "packageVersion": "22.1.4.1",
-      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-Linux-X64.tar.xz",
-      "sha256": "cdf232e3bc5d9909ddcf8cb7016802c6745a01e69a596747c684caa894a11567"
+      "url": "https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-x86_64-ubuntu-22.04.tar.xz",
+      "sha256": "3fd37ae081cbaf5096683fc68b5c9796c4f9e6bbf246a6a4d76973856077bc66"
     },
     {
       "hostRuntimeIdentifier": "linux-arm64",
       "packageId": "StuDev.AotAnywhere.Clang.Toolsets.linux-arm64",
       "packageVersion": "22.1.4.1",
-      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-Linux-ARM64.tar.xz",
-      "sha256": "ac8bed48a6481ccc0e14af18f64d44fc1ca8c0ccf630c1d4dc5e97027e87e6fa"
+      "url": "https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-aarch64-ubuntu-22.04.tar.xz",
+      "sha256": "ff0be153324d6c7028b5d91dd19d3dd839d5477a3900de618ef186d7064d76ef"
     },
     {
       "hostRuntimeIdentifier": "win-x64",
       "packageId": "StuDev.AotAnywhere.Clang.Toolsets.win-x64",
       "packageVersion": "22.1.4.1",
-      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-win64.exe",
-      "sha256": "21b70c77e26e69cc14aa6e1023568868476748586bf14a978915ed6b3cf76ea1"
+      "url": "https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-x86_64-windows.tar.xz",
+      "sha256": "b5066eb1b6bac8f09f5a3738eec7663b11232506f3a6816bb9da71c79508a23e"
     },
     {
       "hostRuntimeIdentifier": "win-arm64",
       "packageId": "StuDev.AotAnywhere.Clang.Toolsets.win-arm64",
       "packageVersion": "22.1.4.1",
-      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-woa64.exe",
-      "sha256": "09924875cdf239f7a96e3258ed8d289a050ba385240ac8255a34ea4d2cbfb56c"
+      "url": "https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-aarch64-windows.tar.xz",
+      "sha256": "df5c5db86922829666c1864fde73fd30177587b249e203204a01a956d20e4b89"
     },
     {
       "hostRuntimeIdentifier": "osx-arm64",
       "packageId": "StuDev.AotAnywhere.Clang.Toolsets.osx-arm64",
       "packageVersion": "22.1.4.1",
-      "url": "https://github.com/llvm/llvm-project/releases/download/llvmorg-22.1.4/LLVM-22.1.4-macOS-ARM64.tar.xz",
-      "sha256": "45e0dfc0453624caed5e7b20e224ce8343af9c511c7f59803753a586620d6ad1"
+      "url": "https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-aarch64-macos.tar.xz",
+      "sha256": "37f9f9198be95be31265bfccc0d1b66cfc3b21d391712d71e9396663018661bf"
     },
     {
       "hostRuntimeIdentifier": "osx-x64",

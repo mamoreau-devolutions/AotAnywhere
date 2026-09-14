@@ -1,9 +1,19 @@
 # Windows cross-link library cache
 
-Non-Windows hosts link `win-x64` / `win-arm64` with `lld-link` against real MSVC
+Non-Windows hosts can link `win-x64` / `win-arm64` with `lld-link` against real MSVC
 CRT and Windows SDK import libraries. Microsoft does not allow those libraries
 to be redistributed in AotAnywhere packages, so the helpers below extract them
 from a licensed Windows install and restore a private cache on Linux/macOS CI.
+
+For package-contained cross-linking, use `UseAotCrtStub=true` instead. The
+Windows validation/release workflows build `aotcrtstub.lib` and
+`ntdllcrt.lib`, then generate Windows SDK/UCRT import libraries from DLL export
+tables on a licensed Windows runner. Only those generated `.lib` files are
+embedded in the package; no MSVC CRT, Windows SDK DLL, headers, or compiler
+files are copied. The package path is selected automatically, or can be
+provided explicitly with `AotAnywhereAotCrtStubPath` and
+`AotAnywhereWindowsSdkPath`. Review redistribution terms before publishing
+generated import libraries.
 
 ## Layout contract
 
