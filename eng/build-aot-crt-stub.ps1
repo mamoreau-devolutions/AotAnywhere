@@ -53,7 +53,11 @@ function Build-Architecture([string] $name, [string] $assembler) {
     $cpp = Join-Path $dir 'aotcrtstubcpp.cpp.obj'
     $asm = Join-Path $dir 'aotcrtstub.asm.obj'
     $target = if ($name -eq 'x86_64') { @() } else { @('--target=arm64-pc-windows-msvc') }
-    & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- /std:c11 `
+    # No explicit /std:c11: strict ISO C11 conformance rejects the
+    # MSVC-style truncated address constants (e.g. "(DWORD)&__guard_flags"
+    # for the load-config directory's absolute guard symbols) that
+    # clang-cl's default MSVC-compatible dialect accepts.
+    & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
         "/Fo$c" (Join-Path $SourceDirectory 'aotcrtstub.c')
     if ($LASTEXITCODE) { throw "clang-cl failed for $name C source." }
     & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
