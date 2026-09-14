@@ -140,9 +140,12 @@ jobs:
           tar -xf "$env:RUNNER_TEMP\llvm.tar.xz" -C "$env:RUNNER_TEMP\llvm" --strip-components=1
           $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
           "PATH=$env:RUNNER_TEMP\llvm\bin;$env:PATH" >> $env:GITHUB_ENV
-          git clone --filter=blob:none --no-checkout https://github.com/awakecoding/runtime.git "$env:RUNNER_TEMP\runtime"
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\runtime" | Out-Null
+          git -C "$env:RUNNER_TEMP\runtime" init -q
+          git -C "$env:RUNNER_TEMP\runtime" remote add origin https://github.com/awakecoding/runtime.git
           git -C "$env:RUNNER_TEMP\runtime" sparse-checkout set --cone src/coreclr/nativeaot/Runtime/aotcrtstub
-          git -C "$env:RUNNER_TEMP\runtime" checkout --detach ba0c43c17535ff23bda655bf4300b8514e7ccf67
+          git -C "$env:RUNNER_TEMP\runtime" fetch --depth 1 --filter=blob:none origin ba0c43c17535ff23bda655bf4300b8514e7ccf67
+          git -C "$env:RUNNER_TEMP\runtime" checkout FETCH_HEAD
 
       - name: Build package-owned Windows cross-link inputs
         shell: pwsh
