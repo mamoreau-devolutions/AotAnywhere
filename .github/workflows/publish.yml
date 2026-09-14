@@ -168,7 +168,15 @@ jobs:
         run: |
           version="${{ steps.ver.outputs.version }}"
           echo "Packing StuDev.AotAnywhere $version"
-          dotnet build -t:Pack src/AotAnywhere.nuproj -p:Version="$version" \
+          # msvc-dev-cmd sets a Platform=x64 environment variable (from
+          # vcvarsall.bat), which MSBuild silently picks up as a global
+          # property for every project in this build, including the
+          # AotAnywhere.Tasks.csproj project reference. That inserts a
+          # platform-name segment into its output path
+          # (bin\x64\Release\netstandard2.0 instead of
+          # bin\Release\netstandard2.0), which the NuGet pack targets don't
+          # expect, so it must be explicitly reset to AnyCPU here.
+          dotnet build -t:Pack src/AotAnywhere.nuproj -p:Version="$version" -p:Platform=AnyCPU \
             -p:AotAnywhereAotCrtStubPayloadDir="$RUNNER_TEMP/payload/aot-crt-stub" \
             -p:AotAnywhereWindowsSdkImportsPayloadDir="$RUNNER_TEMP/payload/windows-sdk-imports"
           nupkg=$(find src/bin -name "StuDev.AotAnywhere.$version.nupkg" | head -1)
