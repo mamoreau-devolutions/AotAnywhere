@@ -177,14 +177,24 @@
       <AotAnywhereLldLinkExe Condition="'$(AotAnywhereLldLinkExe)' == ''">lld-link</AotAnywhereLldLinkExe>
       <AotAnywhereLd64LldExe Condition="'$(AotAnywhereLd64LldExe)' == ''">ld64.lld</AotAnywhereLd64LldExe>
       <AotAnywhereLlvmObjcopyExe Condition="'$(AotAnywhereLlvmObjcopyExe)' == ''">llvm-objcopy</AotAnywhereLlvmObjcopyExe>
-      <AotAnywhereClangExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/clang</AotAnywhereClangExe>
-      <AotAnywhereLldLinkExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/lld-link</AotAnywhereLldLinkExe>
-      <AotAnywhereLd64LldExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/ld64.lld</AotAnywhereLd64LldExe>
-      <AotAnywhereLlvmObjcopyExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/llvm-objcopy</AotAnywhereLlvmObjcopyExe>
-      <AotAnywhereClangExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/clang.exe</AotAnywhereClangExe>
-      <AotAnywhereLldLinkExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/lld-link.exe</AotAnywhereLldLinkExe>
-      <AotAnywhereLd64LldExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/ld64.lld.exe</AotAnywhereLd64LldExe>
-      <AotAnywhereLlvmObjcopyExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/llvm-objcopy.exe</AotAnywhereLlvmObjcopyExe>
+      <!--
+        The four "derive from AotAnywhereClangBinPath" assignments below must
+        also require the target property to still be empty. Without that
+        guard they unconditionally clobber an explicit "-p:AotAnywhereXyzExe="
+        override (or the bare-name defaults set two lines above) whenever
+        AotAnywhereClangBinPath happens to be non-empty - which broke passing
+        an explicit AotAnywhereLldLinkExe on toolchains (e.g. Homebrew's
+        post-split llvm/lld formulae) where lld-link does not live alongside
+        clang in the same bin directory.
+      -->
+      <AotAnywhereClangExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereClangExe)' == 'clang'">$(AotAnywhereClangBinPath)/clang</AotAnywhereClangExe>
+      <AotAnywhereLldLinkExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLldLinkExe)' == 'lld-link'">$(AotAnywhereClangBinPath)/lld-link</AotAnywhereLldLinkExe>
+      <AotAnywhereLd64LldExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLd64LldExe)' == 'ld64.lld'">$(AotAnywhereClangBinPath)/ld64.lld</AotAnywhereLd64LldExe>
+      <AotAnywhereLlvmObjcopyExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLlvmObjcopyExe)' == 'llvm-objcopy'">$(AotAnywhereClangBinPath)/llvm-objcopy</AotAnywhereLlvmObjcopyExe>
+      <AotAnywhereClangExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereClangExe)' == '$(AotAnywhereClangBinPath)/clang'">$(AotAnywhereClangBinPath)/clang.exe</AotAnywhereClangExe>
+      <AotAnywhereLldLinkExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLldLinkExe)' == '$(AotAnywhereClangBinPath)/lld-link'">$(AotAnywhereClangBinPath)/lld-link.exe</AotAnywhereLldLinkExe>
+      <AotAnywhereLd64LldExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLd64LldExe)' == '$(AotAnywhereClangBinPath)/ld64.lld'">$(AotAnywhereClangBinPath)/ld64.lld.exe</AotAnywhereLd64LldExe>
+      <AotAnywhereLlvmObjcopyExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLlvmObjcopyExe)' == '$(AotAnywhereClangBinPath)/llvm-objcopy'">$(AotAnywhereClangBinPath)/llvm-objcopy.exe</AotAnywhereLlvmObjcopyExe>
     </PropertyGroup>
 
   </Target>
