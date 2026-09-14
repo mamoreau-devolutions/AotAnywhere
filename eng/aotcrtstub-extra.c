@@ -23,42 +23,52 @@
 
 #if defined(_M_ARM64) || defined(__aarch64__)
 
-long _InterlockedAnd(long volatile* p, long v) { return __atomic_fetch_and(p, v, __ATOMIC_SEQ_CST); }
-long _InterlockedOr(long volatile* p, long v) { return __atomic_fetch_or(p, v, __ATOMIC_SEQ_CST); }
-long _InterlockedXor(long volatile* p, long v) { return __atomic_fetch_xor(p, v, __ATOMIC_SEQ_CST); }
-long _InterlockedExchange(long volatile* p, long v) { return __atomic_exchange_n(p, v, __ATOMIC_SEQ_CST); }
-long _InterlockedExchangeAdd(long volatile* p, long v) { return __atomic_fetch_add(p, v, __ATOMIC_SEQ_CST); }
-long _InterlockedIncrement(long volatile* p) { return __atomic_add_fetch(p, 1, __ATOMIC_SEQ_CST); }
-long _InterlockedDecrement(long volatile* p) { return __atomic_sub_fetch(p, 1, __ATOMIC_SEQ_CST); }
+//
+// These are deliberately NOT named _InterlockedXxx: clang-cl recognizes each
+// _InterlockedXxx name as a built-in MSVC-compatibility intrinsic and refuses
+// to compile a translation unit that defines a real function under that name
+// ("definition of builtin function"), even under -fno-builtin. The real
+// _InterlockedXxx external symbols are instead provided by tiny tail-branch
+// trampolines in aotcrtstub-extra-arm64.asm that jump straight into these
+// functions - register-preserving, so it's a transparent passthrough.
+//
 
-long _InterlockedCompareExchange(long volatile* p, long exch, long cmp)
+long AotCrtInterlockedAnd(long volatile* p, long v) { return __atomic_fetch_and(p, v, __ATOMIC_SEQ_CST); }
+long AotCrtInterlockedOr(long volatile* p, long v) { return __atomic_fetch_or(p, v, __ATOMIC_SEQ_CST); }
+long AotCrtInterlockedXor(long volatile* p, long v) { return __atomic_fetch_xor(p, v, __ATOMIC_SEQ_CST); }
+long AotCrtInterlockedExchange(long volatile* p, long v) { return __atomic_exchange_n(p, v, __ATOMIC_SEQ_CST); }
+long AotCrtInterlockedExchangeAdd(long volatile* p, long v) { return __atomic_fetch_add(p, v, __ATOMIC_SEQ_CST); }
+long AotCrtInterlockedIncrement(long volatile* p) { return __atomic_add_fetch(p, 1, __ATOMIC_SEQ_CST); }
+long AotCrtInterlockedDecrement(long volatile* p) { return __atomic_sub_fetch(p, 1, __ATOMIC_SEQ_CST); }
+
+long AotCrtInterlockedCompareExchange(long volatile* p, long exch, long cmp)
 {
     __atomic_compare_exchange_n(p, &cmp, exch, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     return cmp;
 }
 
-long long _InterlockedExchange64(long long volatile* p, long long v) { return __atomic_exchange_n(p, v, __ATOMIC_SEQ_CST); }
-long long _InterlockedExchangeAdd64(long long volatile* p, long long v) { return __atomic_fetch_add(p, v, __ATOMIC_SEQ_CST); }
-long long _InterlockedAnd64(long long volatile* p, long long v) { return __atomic_fetch_and(p, v, __ATOMIC_SEQ_CST); }
-long long _InterlockedOr64(long long volatile* p, long long v) { return __atomic_fetch_or(p, v, __ATOMIC_SEQ_CST); }
-long long _InterlockedIncrement64(long long volatile* p) { return __atomic_add_fetch(p, 1, __ATOMIC_SEQ_CST); }
-long long _InterlockedDecrement64(long long volatile* p) { return __atomic_sub_fetch(p, 1, __ATOMIC_SEQ_CST); }
+long long AotCrtInterlockedExchange64(long long volatile* p, long long v) { return __atomic_exchange_n(p, v, __ATOMIC_SEQ_CST); }
+long long AotCrtInterlockedExchangeAdd64(long long volatile* p, long long v) { return __atomic_fetch_add(p, v, __ATOMIC_SEQ_CST); }
+long long AotCrtInterlockedAnd64(long long volatile* p, long long v) { return __atomic_fetch_and(p, v, __ATOMIC_SEQ_CST); }
+long long AotCrtInterlockedOr64(long long volatile* p, long long v) { return __atomic_fetch_or(p, v, __ATOMIC_SEQ_CST); }
+long long AotCrtInterlockedIncrement64(long long volatile* p) { return __atomic_add_fetch(p, 1, __ATOMIC_SEQ_CST); }
+long long AotCrtInterlockedDecrement64(long long volatile* p) { return __atomic_sub_fetch(p, 1, __ATOMIC_SEQ_CST); }
 
-long long _InterlockedCompareExchange64(long long volatile* p, long long exch, long long cmp)
+long long AotCrtInterlockedCompareExchange64(long long volatile* p, long long exch, long long cmp)
 {
     __atomic_compare_exchange_n(p, &cmp, exch, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     return cmp;
 }
 
-void* _InterlockedExchangePointer(void* volatile* p, void* v) { return __atomic_exchange_n(p, v, __ATOMIC_SEQ_CST); }
+void* AotCrtInterlockedExchangePointer(void* volatile* p, void* v) { return __atomic_exchange_n(p, v, __ATOMIC_SEQ_CST); }
 
-void* _InterlockedCompareExchangePointer(void* volatile* p, void* exch, void* cmp)
+void* AotCrtInterlockedCompareExchangePointer(void* volatile* p, void* exch, void* cmp)
 {
     __atomic_compare_exchange_n(p, &cmp, exch, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
     return cmp;
 }
 
-unsigned char _InterlockedCompareExchange128(long long volatile* dst, long long exchHigh, long long exchLow, long long* comparand)
+unsigned char AotCrtInterlockedCompareExchange128(long long volatile* dst, long long exchHigh, long long exchLow, long long* comparand)
 {
     unsigned __int128 cmp = ((unsigned __int128)(unsigned long long)comparand[1] << 64) | (unsigned long long)comparand[0];
     unsigned __int128 exch = ((unsigned __int128)(unsigned long long)exchHigh << 64) | (unsigned long long)exchLow;

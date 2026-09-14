@@ -96,27 +96,14 @@ function Build-Architecture([string] $name, [string] $assembler) {
         "/Fo$cpp" (Join-Path $SourceDirectory 'aotcrtstubcpp.cpp')
     if ($LASTEXITCODE) { throw "clang-cl failed for $name C++ source." }
     # aotcrtstub-extra.c is AotAnywhere's own addition (not vendored from
-    # upstream): out-of-line _Interlocked* helpers the ARM64 NativeAOT
-    # bootstrapper objects reference that MSVC always inlines on x86_64.
-    # It compiles to an empty translation unit on x86_64 (see the file's
-    # #if guard), so it is built unconditionally for simplicity.
-    #
-    # clang-cl recognizes each _InterlockedXxx name as a compiler builtin
-    # (an MS-compatibility intrinsic) and refuses to let a translation unit
-    # define a real function with that name ("definition of builtin
-    # function"). -fno-builtin-<name> tells the front end to stop treating
-    # that specific name as a builtin for this translation unit only, so our
-    # definition is accepted; -fno-builtin flags are GNU-style and must be
-    # forwarded through clang-cl's "/clang:" passthrough.
-    $noBuiltinNames = @(
-        '_InterlockedAnd', '_InterlockedOr', '_InterlockedXor', '_InterlockedExchange', '_InterlockedExchangeAdd',
-        '_InterlockedIncrement', '_InterlockedDecrement', '_InterlockedCompareExchange',
-        '_InterlockedExchange64', '_InterlockedExchangeAdd64', '_InterlockedAnd64', '_InterlockedOr64',
-        '_InterlockedIncrement64', '_InterlockedDecrement64', '_InterlockedCompareExchange64',
-        '_InterlockedExchangePointer', '_InterlockedCompareExchangePointer', '_InterlockedCompareExchange128'
-    )
-    $noBuiltinFlags = @($noBuiltinNames | ForEach-Object { "/clang:-fno-builtin-$_" })
-    & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- @noBuiltinFlags `
+    # upstream): the AotCrtInterlockedXxx helper bodies that
+    # aotcrtstub-extra-arm64.asm's _InterlockedXxx tail-branch trampolines
+    # jump into (the ARM64 NativeAOT bootstrapper objects reference the real
+    # _InterlockedXxx names directly, which MSVC always inlines on x86_64
+    # instead, leaving no external reference there). It compiles to an
+    # empty translation unit on x86_64 (see the file's #if guard), so it is
+    # built unconditionally for simplicity.
+    & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
         "/Fo$extraC" (Join-Path $PSScriptRoot 'aotcrtstub-extra.c')
     if ($LASTEXITCODE) { throw "clang-cl failed for $name aotcrtstub-extra.c." }
     $extraObjs = @($extraC)

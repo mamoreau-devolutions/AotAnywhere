@@ -22,6 +22,125 @@
         EXPORT  __security_push_cookie
         EXPORT  __security_pop_cookie
 
+;; The real _InterlockedXxx bodies live in aotcrtstub-extra.c under
+;; AotCrtInterlockedXxx names: clang-cl recognizes the _InterlockedXxx names
+;; themselves as built-in MSVC-compatibility intrinsics and refuses to
+;; compile a C definition under those names. A plain unconditional branch
+;; (not a call) is a transparent tail-passthrough here: it touches no
+;; registers of its own, so every argument register and LR are exactly as
+;; the original caller of _InterlockedXxx left them, and the target
+;; function's "ret" returns straight to that original caller.
+
+        IMPORT  AotCrtInterlockedAnd
+        IMPORT  AotCrtInterlockedOr
+        IMPORT  AotCrtInterlockedXor
+        IMPORT  AotCrtInterlockedExchange
+        IMPORT  AotCrtInterlockedExchangeAdd
+        IMPORT  AotCrtInterlockedIncrement
+        IMPORT  AotCrtInterlockedDecrement
+        IMPORT  AotCrtInterlockedCompareExchange
+        IMPORT  AotCrtInterlockedExchange64
+        IMPORT  AotCrtInterlockedExchangeAdd64
+        IMPORT  AotCrtInterlockedAnd64
+        IMPORT  AotCrtInterlockedOr64
+        IMPORT  AotCrtInterlockedIncrement64
+        IMPORT  AotCrtInterlockedDecrement64
+        IMPORT  AotCrtInterlockedCompareExchange64
+        IMPORT  AotCrtInterlockedExchangePointer
+        IMPORT  AotCrtInterlockedCompareExchangePointer
+        IMPORT  AotCrtInterlockedCompareExchange128
+
+        EXPORT  _InterlockedAnd
+        EXPORT  _InterlockedOr
+        EXPORT  _InterlockedXor
+        EXPORT  _InterlockedExchange
+        EXPORT  _InterlockedExchangeAdd
+        EXPORT  _InterlockedIncrement
+        EXPORT  _InterlockedDecrement
+        EXPORT  _InterlockedCompareExchange
+        EXPORT  _InterlockedExchange64
+        EXPORT  _InterlockedExchangeAdd64
+        EXPORT  _InterlockedAnd64
+        EXPORT  _InterlockedOr64
+        EXPORT  _InterlockedIncrement64
+        EXPORT  _InterlockedDecrement64
+        EXPORT  _InterlockedCompareExchange64
+        EXPORT  _InterlockedExchangePointer
+        EXPORT  _InterlockedCompareExchangePointer
+        EXPORT  _InterlockedCompareExchange128
+
+_InterlockedAnd PROC
+        b       AotCrtInterlockedAnd
+_InterlockedAnd ENDP
+
+_InterlockedOr PROC
+        b       AotCrtInterlockedOr
+_InterlockedOr ENDP
+
+_InterlockedXor PROC
+        b       AotCrtInterlockedXor
+_InterlockedXor ENDP
+
+_InterlockedExchange PROC
+        b       AotCrtInterlockedExchange
+_InterlockedExchange ENDP
+
+_InterlockedExchangeAdd PROC
+        b       AotCrtInterlockedExchangeAdd
+_InterlockedExchangeAdd ENDP
+
+_InterlockedIncrement PROC
+        b       AotCrtInterlockedIncrement
+_InterlockedIncrement ENDP
+
+_InterlockedDecrement PROC
+        b       AotCrtInterlockedDecrement
+_InterlockedDecrement ENDP
+
+_InterlockedCompareExchange PROC
+        b       AotCrtInterlockedCompareExchange
+_InterlockedCompareExchange ENDP
+
+_InterlockedExchange64 PROC
+        b       AotCrtInterlockedExchange64
+_InterlockedExchange64 ENDP
+
+_InterlockedExchangeAdd64 PROC
+        b       AotCrtInterlockedExchangeAdd64
+_InterlockedExchangeAdd64 ENDP
+
+_InterlockedAnd64 PROC
+        b       AotCrtInterlockedAnd64
+_InterlockedAnd64 ENDP
+
+_InterlockedOr64 PROC
+        b       AotCrtInterlockedOr64
+_InterlockedOr64 ENDP
+
+_InterlockedIncrement64 PROC
+        b       AotCrtInterlockedIncrement64
+_InterlockedIncrement64 ENDP
+
+_InterlockedDecrement64 PROC
+        b       AotCrtInterlockedDecrement64
+_InterlockedDecrement64 ENDP
+
+_InterlockedCompareExchange64 PROC
+        b       AotCrtInterlockedCompareExchange64
+_InterlockedCompareExchange64 ENDP
+
+_InterlockedExchangePointer PROC
+        b       AotCrtInterlockedExchangePointer
+_InterlockedExchangePointer ENDP
+
+_InterlockedCompareExchangePointer PROC
+        b       AotCrtInterlockedCompareExchangePointer
+_InterlockedCompareExchangePointer ENDP
+
+_InterlockedCompareExchange128 PROC
+        b       AotCrtInterlockedCompareExchange128
+_InterlockedCompareExchange128 ENDP
+
 __security_push_cookie PROC
         sub     sp, sp, #16
         adrp    x17, __security_cookie
