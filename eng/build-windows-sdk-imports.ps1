@@ -72,17 +72,45 @@ function Get-Exports([string] $dll) {
     $exports
 }
 
-function Build-ImportLibrary([string] $dllName, [string] $destination) {
-    $dll = Join-Path $DllRoot "$dllName.dll"
+function Build-ImportLibrary {
+    param(
+        [Parameter(Mandatory)] [string] $DllName,
+        [Parameter(Mandatory)] [string] $Destination,
+        # Some SDK import libraries do not correspond to a real on-disk DLL:
+        # they are "virtual" API set contracts (e.g. Synchronization.lib ->
+        # api-ms-win-core-synch-l1-2-0.dll) that the OS loader redirects to
+        # a real implementing DLL at load time. There is no physical file
+        # to run dumpbin against for those, so ExportSourceDll lets exports
+        # be read from the real host DLL instead, while ImportDllName keeps
+        # the generated .lib's embedded import-table entry set to the
+        # contract name so the loader's API set redirection still applies
+        # normally at runtime on the eventual target machine.
+        [string] $ExportSourceDll,
+        [string] $ImportDllName,
+        [string[]] $OnlyNames
+    )
+
+    $sourceDllName = if ($ExportSourceDll) { $ExportSourceDll } else { $DllName }
+    $dll = Join-Path $DllRoot "$sourceDllName.dll"
     if (-not (Test-Path -LiteralPath $dll -PathType Leaf)) {
         throw "Required Windows DLL was not found: $dll"
     }
+    $libraryName = if ($ImportDllName) { $ImportDllName } else { "$DllName.dll" }
 
-    $def = Join-Path ([System.IO.Path]::GetDirectoryName($destination)) "$dllName.def"
+    $def = Join-Path ([System.IO.Path]::GetDirectoryName($Destination)) "$DllName.def"
     $lines = [System.Collections.Generic.List[string]]::new()
-    $lines.Add("LIBRARY $dllName.dll")
+    $lines.Add("LIBRARY $libraryName")
     $lines.Add('EXPORTS')
-    foreach ($export in Get-Exports $dll) {
+    $exports = Get-Exports $dll
+    if ($OnlyNames) {
+        $names = [System.Collections.Generic.HashSet[string]]::new([string[]] $exports.Name)
+        $missing = $OnlyNames | Where-Object { -not $names.Contains($_) }
+        if ($missing) {
+            throw "Expected export(s) not found in '$dll': $($missing -join ', ')"
+        }
+        $exports = $exports | Where-Object { $OnlyNames -contains $_.Name }
+    }
+    foreach ($export in $exports) {
         $suffix = if ($export.Data) { ' DATA' } else { '' }
         $lines.Add("    $($export.Name)$suffix")
     }
@@ -94,15 +122,33 @@ function Build-ImportLibrary([string] $dllName, [string] $destination) {
     # host-default machine detection and failing with "unknown target".
     & $dllTool '-m' $machine `
         '-d' $def `
-        '-l' $destination
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $destination -PathType Leaf)) {
-        throw "llvm-dlltool failed to create '$destination'."
+        '-l' $Destination
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $Destination -PathType Leaf)) {
+        throw "llvm-dlltool failed to create '$Destination'."
     }
     Remove-Item -LiteralPath $def -Force
 }
 
+# Synchronization.lib is a virtual API set contract with no physical DLL on
+# disk; its functions (WaitOnAddress/WakeByAddress*) are implemented in and
+# exported directly by kernelbase.dll.
+$importOverrides = @{
+    'Synchronization' = @{
+        ExportSourceDll = 'kernelbase'
+        ImportDllName   = 'api-ms-win-core-synch-l1-2-0.dll'
+        OnlyNames       = @('WaitOnAddress', 'WakeByAddressAll', 'WakeByAddressSingle')
+    }
+}
+
 foreach ($name in $umLibraries) {
-    Build-ImportLibrary $name (Join-Path $um "$name.lib")
+    $destination = Join-Path $um "$name.lib"
+    if ($importOverrides.ContainsKey($name)) {
+        $o = $importOverrides[$name]
+        Build-ImportLibrary $name $destination -ExportSourceDll $o.ExportSourceDll -ImportDllName $o.ImportDllName -OnlyNames $o.OnlyNames
+    }
+    else {
+        Build-ImportLibrary $name $destination
+    }
 }
 Build-ImportLibrary 'ucrtbase' (Join-Path $ucrt 'ucrt.lib')
 Copy-Item (Join-Path $ucrt 'ucrt.lib') (Join-Path $ucrt 'libucrt.lib')
