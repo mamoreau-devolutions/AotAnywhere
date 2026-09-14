@@ -46,6 +46,34 @@ foreach ($file in $sourceFiles) {
     }
 }
 
+# aotcrtstub.c initializes IMAGE_LOAD_CONFIG_DIRECTORY64.GuardFlags from the
+# address of the absolute symbol "__guard_flags" truncated to DWORD:
+#   .GuardFlags = (DWORD)(ULONG_PTR)&__guard_flags,
+# MSVC's cl.exe accepts a pointer-to-integer-truncation as a static
+# initializer here (the linker resolves it as a relocation); clang-cl
+# rejects it as "initializer element is not a compile-time constant"
+# regardless of /std: dialect - this is a Sema constant-expression
+# restriction, not a conformance-mode toggle.
+#
+# GuardFlags only matters when the final link enables Control Flow Guard
+# (/guard:cf). Per the source's own comments, the linker only *warns* -
+# it does not error - when the load config directory does not already
+# reference the CFG tables it synthesizes, and the resulting image is
+# simply not treated as CFG-guarded by the loader. Hard-coding GuardFlags
+# to 0 here reproduces exactly that already-accepted degraded state (no
+# CFG enforcement), which is fine since AotAnywhere does not request
+# /guard:cf for its NativeAOT links. This patch is applied to a build-time
+# copy only; the pinned upstream source is left untouched.
+function Set-GuardFlagsConstant([string] $sourcePath, [string] $patchedPath) {
+    $content = Get-Content -LiteralPath $sourcePath -Raw
+    $needle = '.GuardFlags = (DWORD)(ULONG_PTR)&__guard_flags,'
+    if ($content -notlike "*$needle*") {
+        throw "aotcrtstub.c no longer contains the expected GuardFlags initializer; the clang-cl workaround needs to be revisited."
+    }
+    $content = $content.Replace($needle, '.GuardFlags = 0, /* patched: see build-aot-crt-stub.ps1 */')
+    Set-Content -LiteralPath $patchedPath -Value $content -NoNewline
+}
+
 function Build-Architecture([string] $name, [string] $assembler) {
     $dir = Join-Path $OutputDirectory $name
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -53,12 +81,10 @@ function Build-Architecture([string] $name, [string] $assembler) {
     $cpp = Join-Path $dir 'aotcrtstubcpp.cpp.obj'
     $asm = Join-Path $dir 'aotcrtstub.asm.obj'
     $target = if ($name -eq 'x86_64') { @() } else { @('--target=arm64-pc-windows-msvc') }
-    # No explicit /std:c11: strict ISO C11 conformance rejects the
-    # MSVC-style truncated address constants (e.g. "(DWORD)&__guard_flags"
-    # for the load-config directory's absolute guard symbols) that
-    # clang-cl's default MSVC-compatible dialect accepts.
+    $patchedC = Join-Path $dir 'aotcrtstub.patched.c'
+    Set-GuardFlagsConstant (Join-Path $SourceDirectory 'aotcrtstub.c') $patchedC
     & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
-        "/Fo$c" (Join-Path $SourceDirectory 'aotcrtstub.c')
+        "/Fo$c" $patchedC
     if ($LASTEXITCODE) { throw "clang-cl failed for $name C source." }
     & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
         "/Fo$cpp" (Join-Path $SourceDirectory 'aotcrtstubcpp.cpp')
