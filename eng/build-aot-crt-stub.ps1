@@ -80,6 +80,7 @@ function Build-Architecture([string] $name, [string] $assembler) {
     $c = Join-Path $dir 'aotcrtstub.c.obj'
     $cpp = Join-Path $dir 'aotcrtstubcpp.cpp.obj'
     $asm = Join-Path $dir 'aotcrtstub.asm.obj'
+    $extraC = Join-Path $dir 'aotcrtstub-extra.c.obj'
     # Wrapped in @(...): PowerShell unrolls a single-element array returned
     # from an if/else expression back into a bare string when only one item
     # flows through the pipeline, which would make "@target" splat the
@@ -94,6 +95,15 @@ function Build-Architecture([string] $name, [string] $assembler) {
     & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
         "/Fo$cpp" (Join-Path $SourceDirectory 'aotcrtstubcpp.cpp')
     if ($LASTEXITCODE) { throw "clang-cl failed for $name C++ source." }
+    # aotcrtstub-extra.c is AotAnywhere's own addition (not vendored from
+    # upstream): out-of-line _Interlocked* helpers the ARM64 NativeAOT
+    # bootstrapper objects reference that MSVC always inlines on x86_64.
+    # It compiles to an empty translation unit on x86_64 (see the file's
+    # #if guard), so it is built unconditionally for simplicity.
+    & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
+        "/Fo$extraC" (Join-Path $PSScriptRoot 'aotcrtstub-extra.c')
+    if ($LASTEXITCODE) { throw "clang-cl failed for $name aotcrtstub-extra.c." }
+    $extraObjs = @($extraC)
     if ($name -eq 'x86_64') {
         & $assembler /c "/Fo$asm" (Join-Path $SourceDirectory 'aotcrtstub_amd64.asm')
     } else {
@@ -101,9 +111,17 @@ function Build-Architecture([string] $name, [string] $assembler) {
         # produces a single object file from a single source file, invoked
         # as "armasm64 [options] -o objectfile sourcefile".
         & $assembler -nologo -o $asm (Join-Path $SourceDirectory 'aotcrtstub_arm64.asm')
+        if ($LASTEXITCODE) { throw "assembler failed for $name." }
+        # AotAnywhere's own addition: __security_push_cookie /
+        # __security_pop_cookie, referenced by ARM64 NativeAOT bootstrapper
+        # objects but not part of the vendored aotcrtstub_arm64.asm.
+        $extraAsm = Join-Path $dir 'aotcrtstub-extra-arm64.asm.obj'
+        & $assembler -nologo -o $extraAsm (Join-Path $PSScriptRoot 'aotcrtstub-extra-arm64.asm')
+        if ($LASTEXITCODE) { throw "assembler failed for $name aotcrtstub-extra-arm64.asm." }
+        $extraObjs += $extraAsm
     }
     if ($LASTEXITCODE) { throw "assembler failed for $name." }
-    & $llvmLib /nologo "/out:$(Join-Path $dir 'aotcrtstub.lib')" $c $cpp $asm
+    & $llvmLib /nologo "/out:$(Join-Path $dir 'aotcrtstub.lib')" $c $cpp $asm @extraObjs
     if ($LASTEXITCODE) { throw "llvm-lib failed for $name." }
     # Use the short-form flags (-m/-d/-l): llvm-dlltool's long "--machine="
     # alias goes through option-alias resolution that this LLVM build does
