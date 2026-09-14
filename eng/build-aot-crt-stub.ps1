@@ -97,10 +97,14 @@ function Build-Architecture([string] $name, [string] $assembler) {
     if ($LASTEXITCODE) { throw "assembler failed for $name." }
     & $llvmLib /nologo "/out:$(Join-Path $dir 'aotcrtstub.lib')" $c $cpp $asm
     if ($LASTEXITCODE) { throw "llvm-lib failed for $name." }
+    # Use the short-form flags (-m/-d/-l): llvm-dlltool's long "--machine="
+    # alias goes through option-alias resolution that this LLVM build does
+    # not appear to honor reliably, silently falling back to a broken
+    # host-default machine detection and failing with "unknown target".
     $machine = if ($name -eq 'x86_64') { 'i386:x86-64' } else { 'arm64' }
-    & $dllTool "--machine=$machine" `
-        "--input-def=$(Join-Path $SourceDirectory 'ntdllcrt.def')" `
-        "--output-lib=$(Join-Path $dir 'ntdllcrt.lib')"
+    & $dllTool '-m' $machine `
+        '-d' (Join-Path $SourceDirectory 'ntdllcrt.def') `
+        '-l' (Join-Path $dir 'ntdllcrt.lib')
     if ($LASTEXITCODE) { throw "llvm-dlltool failed for $name." }
 }
 

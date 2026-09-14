@@ -77,7 +77,13 @@ function Build-ImportLibrary([string] $dllName, [string] $destination) {
     }
     Set-Content -LiteralPath $def -Value $lines -Encoding ascii
 
-    & $dllTool "--machine=$machine" "--input-def=$def" "--output-lib=$destination"
+    # Use the short-form flags (-m/-d/-l): llvm-dlltool's long "--machine="
+    # alias goes through option-alias resolution that this LLVM build does
+    # not appear to honor reliably, silently falling back to a broken
+    # host-default machine detection and failing with "unknown target".
+    & $dllTool '-m' $machine `
+        '-d' $def `
+        '-l' $destination
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $destination -PathType Leaf)) {
         throw "llvm-dlltool failed to create '$destination'."
     }
