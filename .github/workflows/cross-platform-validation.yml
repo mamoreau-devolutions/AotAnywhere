@@ -134,7 +134,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: windows-crosslink-package
-          path: ${{ runner.temp }}/package/StuDev.AotAnywhere.0.0-ci.nupkg
+          path: ${{ runner.temp }}/package/StuDev.AotAnywhere.0.0.0-ci.nupkg
           if-no-files-found: error
 
   windows-crosslink-smoke:
