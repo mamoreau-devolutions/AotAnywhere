@@ -53,13 +53,17 @@ function Get-Exports([string] $dll) {
     $exports = foreach ($line in $lines) {
         # Forwarded exports (the entire symbol table of some system DLLs,
         # e.g. normaliz.dll on current Windows versions, since their real
-        # implementation moved elsewhere) render as:
-        #   <ordinal> <hint> <RVA> <name> (forwarded to OTHERDLL.OtherName)
-        # The forwarder suffix carries no information the linker needs -
-        # the name/ordinal/DATA-ness of the export are unchanged - so it is
-        # matched and discarded here rather than rejecting the whole line.
-        if ($line -match '^\s+\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]+\s+(\S+)(?:\s+(DATA))?(?:\s+\(forwarded to [^)]+\))?\s*$') {
+        # implementation moved elsewhere, e.g. into kernelbase.dll) have no
+        # RVA column - they don't point to code within this module - and
+        # render as:
+        #   <ordinal> <hint> <name> (forwarded to OTHERDLL.OtherName)
+        # while ordinary exports render as:
+        #   <ordinal> <hint> <RVA> <name> [DATA]
+        if ($line -match '^\s+\d+\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]+\s+(\S+)(?:\s+(DATA))?\s*$') {
             [pscustomobject]@{ Name = $Matches[1]; Data = ($Matches[2] -eq 'DATA') }
+        }
+        elseif ($line -match '^\s+\d+\s+[0-9A-Fa-f]+\s+(\S+)\s+\(forwarded to [^)]+\)\s*$') {
+            [pscustomobject]@{ Name = $Matches[1]; Data = $false }
         }
     }
     if (@($exports).Count -eq 0) {
