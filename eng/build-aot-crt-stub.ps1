@@ -97,7 +97,10 @@ function Build-Architecture([string] $name, [string] $assembler) {
     if ($name -eq 'x86_64') {
         & $assembler /c "/Fo$asm" (Join-Path $SourceDirectory 'aotcrtstub_amd64.asm')
     } else {
-        & $assembler -nologo -c -o $asm (Join-Path $SourceDirectory 'aotcrtstub_arm64.asm')
+        # armasm64.exe has no "-c" (compile-only) switch: it always
+        # produces a single object file from a single source file, invoked
+        # as "armasm64 [options] -o objectfile sourcefile".
+        & $assembler -nologo -o $asm (Join-Path $SourceDirectory 'aotcrtstub_arm64.asm')
     }
     if ($LASTEXITCODE) { throw "assembler failed for $name." }
     & $llvmLib /nologo "/out:$(Join-Path $dir 'aotcrtstub.lib')" $c $cpp $asm
