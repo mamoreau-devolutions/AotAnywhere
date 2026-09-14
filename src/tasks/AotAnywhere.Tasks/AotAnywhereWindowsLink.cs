@@ -20,7 +20,9 @@ public sealed class AotAnywhereWindowsLink : MSBuildTask
 
     [Required] public string SupportDir { get; set; } = "";
 
-    [Required] public string MsvcPath { get; set; } = "";
+    // Not [Required]: unused (and legitimately empty) when UseAotCrtStub=true,
+    // since the NativeAOT CRT stub replaces the MSVC CRT/vcruntime libraries.
+    public string MsvcPath { get; set; } = "";
 
     [Required] public string WindowsSdkPath { get; set; } = "";
 
