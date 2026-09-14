@@ -63,7 +63,7 @@ function Get-Exports([string] $dll) {
         }
     }
     if (@($exports).Count -eq 0) {
-        throw "No exports were found in '$dll'."
+        throw "No exports were found in '$dll'. Raw dumpbin output:`n$($lines -join "`n")"
     }
     $exports
 }
