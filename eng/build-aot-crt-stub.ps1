@@ -80,7 +80,12 @@ function Build-Architecture([string] $name, [string] $assembler) {
     $c = Join-Path $dir 'aotcrtstub.c.obj'
     $cpp = Join-Path $dir 'aotcrtstubcpp.cpp.obj'
     $asm = Join-Path $dir 'aotcrtstub.asm.obj'
-    $target = if ($name -eq 'x86_64') { @() } else { @('--target=arm64-pc-windows-msvc') }
+    # Wrapped in @(...): PowerShell unrolls a single-element array returned
+    # from an if/else expression back into a bare string when only one item
+    # flows through the pipeline, which would make "@target" splat the
+    # string's individual characters as separate arguments instead of one
+    # "--target=..." argument.
+    $target = @(if ($name -eq 'x86_64') { } else { '--target=arm64-pc-windows-msvc' })
     $patchedC = Join-Path $dir 'aotcrtstub.patched.c'
     Set-GuardFlagsConstant (Join-Path $SourceDirectory 'aotcrtstub.c') $patchedC
     & $clang @target /nologo /c /GS- /Gs1000000 /EHs-c- /GR- `
