@@ -15,6 +15,13 @@ provided explicitly with `AotAnywhereAotCrtStubPath` and
 `AotAnywhereWindowsSdkPath`. Review redistribution terms before publishing
 generated import libraries.
 
+The MIT-licensed CRT-stub implementation is vendored in `eng/aotcrtstub` from
+`awakecoding/runtime` commit `ba0c43c17535ff23bda655bf4300b8514e7ccf67`;
+see that directory's README and license. AotAnywhere-specific ARM64 helpers
+live in the adjacent `eng/aotcrtstub-extra.*` files. Keeping all inputs in this
+repository makes package builds reproducible without a runtime-repository
+checkout.
+
 ## Layout contract
 
 ```text

@@ -90,20 +90,10 @@ jobs:
           tar -xf "$env:RUNNER_TEMP\llvm.tar.xz" -C "$env:RUNNER_TEMP\llvm" --strip-components=1
           $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
           "PATH=$env:RUNNER_TEMP\llvm\bin;$env:PATH" >> $env:GITHUB_ENV
-      - name: Fetch pinned CRT-stub sources
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\runtime" | Out-Null
-          git -C "$env:RUNNER_TEMP\runtime" init -q
-          git -C "$env:RUNNER_TEMP\runtime" remote add origin https://github.com/awakecoding/runtime.git
-          git -C "$env:RUNNER_TEMP\runtime" sparse-checkout set --cone src/coreclr/nativeaot/Runtime/aotcrtstub
-          git -C "$env:RUNNER_TEMP\runtime" fetch --depth 1 --filter=blob:none origin ba0c43c17535ff23bda655bf4300b8514e7ccf67
-          git -C "$env:RUNNER_TEMP\runtime" checkout FETCH_HEAD
       - name: Build CRT stubs and Windows SDK import libraries
         shell: pwsh
         run: |
           ./eng/build-aot-crt-stub.ps1 `
-            -SourceDirectory "$env:RUNNER_TEMP\runtime\src\coreclr\nativeaot\Runtime\aotcrtstub" `
             -OutputDirectory "$env:RUNNER_TEMP\payload\aot-crt-stub"
           ./eng/build-windows-sdk-imports.ps1 `
             -DllRoot "$env:SystemRoot\System32" `

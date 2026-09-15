@@ -131,7 +131,7 @@ jobs:
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
       - uses: ilammy/msvc-dev-cmd@v1
-      - name: Install pinned LLVM and fetch CRT-stub sources
+      - name: Install pinned LLVM
         shell: pwsh
         run: |
           $url = 'https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-x86_64-windows.tar.xz'
@@ -140,18 +140,11 @@ jobs:
           tar -xf "$env:RUNNER_TEMP\llvm.tar.xz" -C "$env:RUNNER_TEMP\llvm" --strip-components=1
           $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
           "PATH=$env:RUNNER_TEMP\llvm\bin;$env:PATH" >> $env:GITHUB_ENV
-          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\runtime" | Out-Null
-          git -C "$env:RUNNER_TEMP\runtime" init -q
-          git -C "$env:RUNNER_TEMP\runtime" remote add origin https://github.com/awakecoding/runtime.git
-          git -C "$env:RUNNER_TEMP\runtime" sparse-checkout set --cone src/coreclr/nativeaot/Runtime/aotcrtstub
-          git -C "$env:RUNNER_TEMP\runtime" fetch --depth 1 --filter=blob:none origin ba0c43c17535ff23bda655bf4300b8514e7ccf67
-          git -C "$env:RUNNER_TEMP\runtime" checkout FETCH_HEAD
 
       - name: Build package-owned Windows cross-link inputs
         shell: pwsh
         run: |
           & "$env:GITHUB_WORKSPACE\eng\build-aot-crt-stub.ps1" `
-            -SourceDirectory "$env:RUNNER_TEMP\runtime\src\coreclr\nativeaot\Runtime\aotcrtstub" `
             -OutputDirectory "$env:RUNNER_TEMP\payload\aot-crt-stub"
           & "$env:GITHUB_WORKSPACE\eng\build-windows-sdk-imports.ps1" `
             -DllRoot "$env:SystemRoot\System32" `

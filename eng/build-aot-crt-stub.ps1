@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)]
-    [string] $SourceDirectory,
+    [string] $SourceDirectory = (Join-Path $PSScriptRoot 'aotcrtstub'),
 
     [Parameter(Mandatory)]
     [string] $OutputDirectory
