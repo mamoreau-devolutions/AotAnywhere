@@ -16,11 +16,13 @@ provided explicitly with `AotAnywhereAotCrtStubPath` and
 generated import libraries.
 
 The MIT-licensed CRT-stub implementation is vendored in `eng/aotcrtstub` from
-`awakecoding/runtime` commit `ba0c43c17535ff23bda655bf4300b8514e7ccf67`;
-see that directory's README and license. AotAnywhere-specific ARM64 helpers
-live in the adjacent `eng/aotcrtstub-extra.*` files. Keeping all inputs in this
-repository makes package builds reproducible without a runtime-repository
-checkout.
+`awakecoding/runtime` commit `ba60ffe69414bb52dfd30303bbff0360664c33ea`;
+see that directory's README and license. That commit also added an x86
+(`aotcrtstub_i386.asm` / `ntdllcrt_i386.def`) stub, which is vendored for
+parity but not currently built, since AotAnywhere only supports `win-x64` and
+`win-arm64` targets. AotAnywhere-specific ARM64 helpers live in the adjacent
+`eng/aotcrtstub-extra.*` files. Keeping all inputs in this repository makes
+package builds reproducible without a runtime-repository checkout.
 
 ## Layout contract
 
