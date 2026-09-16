@@ -312,6 +312,8 @@
         SupportDir="$(NativeIntermediateOutputPath)"
         MsvcPath="$(AotAnywhereMsvcPath)"
         WindowsSdkPath="$(AotAnywhereWindowsSdkPath)"
+        UseAotCrtStub="$(UseAotCrtStub)"
+        AotCrtStubPath="$(AotAnywhereAotCrtStubPath)"
         TargetArchitecture="$(CrossCompileArch)" />
 
   </Target>

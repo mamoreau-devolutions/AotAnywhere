@@ -130,12 +130,48 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install pinned LLVM
+        shell: pwsh
+        run: |
+          $url = 'https://github.com/awakecoding/llvm-prebuilt/releases/download/v2026.2.0/clang%2Bllvm-22.1.4-x86_64-windows.tar.xz'
+          Invoke-WebRequest $url -OutFile "$env:RUNNER_TEMP\llvm.tar.xz"
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\llvm" | Out-Null
+          tar -xf "$env:RUNNER_TEMP\llvm.tar.xz" -C "$env:RUNNER_TEMP\llvm" --strip-components=1
+          $env:PATH = "$env:RUNNER_TEMP\llvm\bin;$env:PATH"
+          "PATH=$env:RUNNER_TEMP\llvm\bin;$env:PATH" >> $env:GITHUB_ENV
+
+      - name: Build package-owned Windows cross-link inputs
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\eng\build-aot-crt-stub.ps1" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\aot-crt-stub"
+          & "$env:GITHUB_WORKSPACE\eng\build-windows-sdk-imports.ps1" `
+            -DllRoot "$env:SystemRoot\System32" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin" `
+            -Architecture x64
+          & "$env:GITHUB_WORKSPACE\eng\build-windows-sdk-imports.ps1" `
+            -DllRoot "$env:SystemRoot\System32" `
+            -OutputDirectory "$env:RUNNER_TEMP\payload\windows-sdk-imports" `
+            -LlvmBinDirectory "$env:RUNNER_TEMP\llvm\bin" `
+            -Architecture arm64
       - name: Pack
         shell: bash
         run: |
           version="${{ steps.ver.outputs.version }}"
           echo "Packing StuDev.AotAnywhere $version"
-          dotnet build -t:Pack src/AotAnywhere.nuproj -p:Version="$version"
+          # msvc-dev-cmd sets a Platform=x64 environment variable (from
+          # vcvarsall.bat), which MSBuild silently picks up as a global
+          # property for every project in this build, including the
+          # AotAnywhere.Tasks.csproj project reference. That inserts a
+          # platform-name segment into its output path
+          # (bin\x64\Release\netstandard2.0 instead of
+          # bin\Release\netstandard2.0), which the NuGet pack targets don't
+          # expect, so it must be explicitly reset to AnyCPU here.
+          dotnet build -t:Pack src/AotAnywhere.nuproj -p:Version="$version" -p:Platform=AnyCPU \
+            -p:AotAnywhereAotCrtStubPayloadDir="$RUNNER_TEMP/payload/aot-crt-stub" \
+            -p:AotAnywhereWindowsSdkImportsPayloadDir="$RUNNER_TEMP/payload/windows-sdk-imports"
           nupkg=$(find src/bin -name "StuDev.AotAnywhere.$version.nupkg" | head -1)
           if [ -z "$nupkg" ]; then echo "::error::packed nupkg not found for $version" >&2; exit 1; fi
           mkdir -p artifacts

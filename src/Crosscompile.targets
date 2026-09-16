@@ -177,14 +177,24 @@
       <AotAnywhereLldLinkExe Condition="'$(AotAnywhereLldLinkExe)' == ''">lld-link</AotAnywhereLldLinkExe>
       <AotAnywhereLd64LldExe Condition="'$(AotAnywhereLd64LldExe)' == ''">ld64.lld</AotAnywhereLd64LldExe>
       <AotAnywhereLlvmObjcopyExe Condition="'$(AotAnywhereLlvmObjcopyExe)' == ''">llvm-objcopy</AotAnywhereLlvmObjcopyExe>
-      <AotAnywhereClangExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/clang</AotAnywhereClangExe>
-      <AotAnywhereLldLinkExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/lld-link</AotAnywhereLldLinkExe>
-      <AotAnywhereLd64LldExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/ld64.lld</AotAnywhereLd64LldExe>
-      <AotAnywhereLlvmObjcopyExe Condition="'$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/llvm-objcopy</AotAnywhereLlvmObjcopyExe>
-      <AotAnywhereClangExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/clang.exe</AotAnywhereClangExe>
-      <AotAnywhereLldLinkExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/lld-link.exe</AotAnywhereLldLinkExe>
-      <AotAnywhereLd64LldExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/ld64.lld.exe</AotAnywhereLd64LldExe>
-      <AotAnywhereLlvmObjcopyExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != ''">$(AotAnywhereClangBinPath)/llvm-objcopy.exe</AotAnywhereLlvmObjcopyExe>
+      <!--
+        The four "derive from AotAnywhereClangBinPath" assignments below must
+        also require the target property to still be empty. Without that
+        guard they unconditionally clobber an explicit "-p:AotAnywhereXyzExe="
+        override (or the bare-name defaults set two lines above) whenever
+        AotAnywhereClangBinPath happens to be non-empty - which broke passing
+        an explicit AotAnywhereLldLinkExe on toolchains (e.g. Homebrew's
+        post-split llvm/lld formulae) where lld-link does not live alongside
+        clang in the same bin directory.
+      -->
+      <AotAnywhereClangExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereClangExe)' == 'clang'">$(AotAnywhereClangBinPath)/clang</AotAnywhereClangExe>
+      <AotAnywhereLldLinkExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLldLinkExe)' == 'lld-link'">$(AotAnywhereClangBinPath)/lld-link</AotAnywhereLldLinkExe>
+      <AotAnywhereLd64LldExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLd64LldExe)' == 'ld64.lld'">$(AotAnywhereClangBinPath)/ld64.lld</AotAnywhereLd64LldExe>
+      <AotAnywhereLlvmObjcopyExe Condition="'$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLlvmObjcopyExe)' == 'llvm-objcopy'">$(AotAnywhereClangBinPath)/llvm-objcopy</AotAnywhereLlvmObjcopyExe>
+      <AotAnywhereClangExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereClangExe)' == '$(AotAnywhereClangBinPath)/clang'">$(AotAnywhereClangBinPath)/clang.exe</AotAnywhereClangExe>
+      <AotAnywhereLldLinkExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLldLinkExe)' == '$(AotAnywhereClangBinPath)/lld-link'">$(AotAnywhereClangBinPath)/lld-link.exe</AotAnywhereLldLinkExe>
+      <AotAnywhereLd64LldExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLd64LldExe)' == '$(AotAnywhereClangBinPath)/ld64.lld'">$(AotAnywhereClangBinPath)/ld64.lld.exe</AotAnywhereLd64LldExe>
+      <AotAnywhereLlvmObjcopyExe Condition="$([MSBuild]::IsOSPlatform('Windows')) and '$(AotAnywhereClangBinPath)' != '' and '$(AotAnywhereLlvmObjcopyExe)' == '$(AotAnywhereClangBinPath)/llvm-objcopy'">$(AotAnywhereClangBinPath)/llvm-objcopy.exe</AotAnywhereLlvmObjcopyExe>
     </PropertyGroup>
 
   </Target>
@@ -227,6 +237,10 @@
           Condition="'$(_AotAnywhereWindowsCross)' == 'true'">
 
     <PropertyGroup>
+      <_AotAnywhereCrtStubArch Condition="$(RuntimeIdentifier.EndsWith('-x64'))">x86_64</_AotAnywhereCrtStubArch>
+      <_AotAnywhereCrtStubArch Condition="$(RuntimeIdentifier.EndsWith('-arm64'))">aarch64</_AotAnywhereCrtStubArch>
+      <AotAnywhereAotCrtStubPath Condition="'$(AotAnywhereAotCrtStubPath)' == '' and '$(UseAotCrtStub)' == 'true' and '$(_AotAnywhereCrtStubArch)' != ''">$(MSBuildThisFileDirectory)aot-crt-stub/$(_AotAnywhereCrtStubArch)</AotAnywhereAotCrtStubPath>
+      <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and '$(UseAotCrtStub)' == 'true' and Exists('$(MSBuildThisFileDirectory)windows-sdk-imports/Lib')">$(MSBuildThisFileDirectory)windows-sdk-imports</AotAnywhereWindowsSdkPath>
       <AotAnywhereWindowsCrossLinkPath Condition="'$(AotAnywhereWindowsCrossLinkPath)' == '' and '$(UseExternalClang)' != 'true' and '$(AotAnywhereWindowsCrossLinkAvailable)' == 'true'">$(PkgStuDev_AotAnywhere_Windows_CrossLink)/tools</AotAnywhereWindowsCrossLinkPath>
       <_AotAnywhereWindowsCrossLinkCacheDir Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true'">$([MSBuild]::NormalizeDirectory('$(NuGetPackageRoot)', 'studev.aotanywhere.windows.crosslink', '$(AotAnywhereWindowsCrossLinkVersion)', 'tools'))</_AotAnywhereWindowsCrossLinkCacheDir>
       <AotAnywhereWindowsCrossLinkPath Condition="'$(AotAnywhereWindowsCrossLinkPath)' == '' and Exists('$(_AotAnywhereWindowsCrossLinkCacheDir)')">$(_AotAnywhereWindowsCrossLinkCacheDir)</AotAnywhereWindowsCrossLinkPath>
@@ -235,17 +249,20 @@
            an xwin "use-winsysroot-style" root (VC/Tools/MSVC + Windows
            Kits/10). The latter two fall back to the root itself; the link task
            (WindowsCrossLinkLayout) descends into those automatically. -->
-      <AotAnywhereMsvcPath Condition="'$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/vctools')">$(AotAnywhereWindowsCrossLinkPath)/vctools</AotAnywhereMsvcPath>
-      <AotAnywhereMsvcPath Condition="'$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/crt')">$(AotAnywhereWindowsCrossLinkPath)/crt</AotAnywhereMsvcPath>
-      <AotAnywhereMsvcPath Condition="'$(AotAnywhereMsvcPath)' == '' and '$(AotAnywhereWindowsCrossLinkPath)' != ''">$(AotAnywhereWindowsCrossLinkPath)</AotAnywhereMsvcPath>
+      <!-- A runtime pack built with NativeAOT's experimental CRT stub
+           supplies the compiler-runtime symbols itself. Do not infer or
+           require an MSVC CRT root in that mode. -->
+      <AotAnywhereMsvcPath Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/vctools')">$(AotAnywhereWindowsCrossLinkPath)/vctools</AotAnywhereMsvcPath>
+      <AotAnywhereMsvcPath Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/crt')">$(AotAnywhereWindowsCrossLinkPath)/crt</AotAnywhereMsvcPath>
+      <AotAnywhereMsvcPath Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == '' and '$(AotAnywhereWindowsCrossLinkPath)' != ''">$(AotAnywhereWindowsCrossLinkPath)</AotAnywhereMsvcPath>
       <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/winsdk')">$(AotAnywhereWindowsCrossLinkPath)/winsdk</AotAnywhereWindowsSdkPath>
       <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and Exists('$(AotAnywhereWindowsCrossLinkPath)/sdk')">$(AotAnywhereWindowsCrossLinkPath)/sdk</AotAnywhereWindowsSdkPath>
       <AotAnywhereWindowsSdkPath Condition="'$(AotAnywhereWindowsSdkPath)' == '' and '$(AotAnywhereWindowsCrossLinkPath)' != ''">$(AotAnywhereWindowsCrossLinkPath)</AotAnywhereWindowsSdkPath>
     </PropertyGroup>
 
-    <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' != 'true' and ('$(AotAnywhereMsvcPath)' == '' or '$(AotAnywhereWindowsSdkPath)' == '')"
-              Text="AotAnywhere: non-Windows Windows-target links require external MSVC and Windows SDK library roots. Run eng/export-windows-crosslink.ps1 on a licensed Windows install, restore with eng/import-windows-crosslink.ps1, or produce them with xwin, then set both AotAnywhereMsvcPath and AotAnywhereWindowsSdkPath (see docs/windows-crosslink-cache.md)." />
-    <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereMsvcPath)/lib') and !Exists('$(AotAnywhereMsvcPath)/VC/Tools/MSVC')"
+    <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' != 'true' and ('$(AotAnywhereWindowsSdkPath)' == '' or ('$(UseAotCrtStub)' != 'true' and '$(AotAnywhereMsvcPath)' == ''))"
+              Text="AotAnywhere: non-Windows Windows-target links require a Windows SDK library root and, unless UseAotCrtStub=true, an external MSVC CRT root. Run eng/export-windows-crosslink.ps1 on a licensed Windows install, restore with eng/import-windows-crosslink.ps1, or produce them with xwin, then set AotAnywhereWindowsSdkPath (and AotAnywhereMsvcPath unless using the NativeAOT CRT stub) (see docs/windows-crosslink-cache.md)." />
+    <Error Condition="'$(UseAotCrtStub)' != 'true' and '$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereMsvcPath)/lib') and !Exists('$(AotAnywhereMsvcPath)/VC/Tools/MSVC')"
           Text="AotAnywhere: MSVC cross-link libraries were not restored. Use the MSBuild SDK reference to restore StuDev.AotAnywhere.Windows.CrossLink, add that PackageReference explicitly, or set AotAnywhereMsvcPath (an xwin winsysroot root also works)." />
     <Error Condition="'$(AotAnywhereWindowsCrossLinkAvailable)' == 'true' and !Exists('$(AotAnywhereWindowsSdkPath)/Lib') and !Exists('$(AotAnywhereWindowsSdkPath)/lib') and !Exists('$(AotAnywhereWindowsSdkPath)/Windows Kits/10/Lib')"
           Text="AotAnywhere: Windows SDK cross-link libraries were not restored. Set AotAnywhereWindowsSdkPath to a compatible Windows SDK root (lower-case Lib, the xwin default, and xwin winsysroot roots also work)." />

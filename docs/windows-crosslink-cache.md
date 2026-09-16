@@ -1,9 +1,28 @@
 # Windows cross-link library cache
 
-Non-Windows hosts link `win-x64` / `win-arm64` with `lld-link` against real MSVC
+Non-Windows hosts can link `win-x64` / `win-arm64` with `lld-link` against real MSVC
 CRT and Windows SDK import libraries. Microsoft does not allow those libraries
 to be redistributed in AotAnywhere packages, so the helpers below extract them
 from a licensed Windows install and restore a private cache on Linux/macOS CI.
+
+For package-contained cross-linking, use `UseAotCrtStub=true` instead. The
+Windows validation/release workflows build `aotcrtstub.lib` and
+`ntdllcrt.lib`, then generate Windows SDK/UCRT import libraries from DLL export
+tables on a licensed Windows runner. Only those generated `.lib` files are
+embedded in the package; no MSVC CRT, Windows SDK DLL, headers, or compiler
+files are copied. The package path is selected automatically, or can be
+provided explicitly with `AotAnywhereAotCrtStubPath` and
+`AotAnywhereWindowsSdkPath`. Review redistribution terms before publishing
+generated import libraries.
+
+The MIT-licensed CRT-stub implementation is vendored in `eng/aotcrtstub` from
+`awakecoding/runtime` commit `ba60ffe69414bb52dfd30303bbff0360664c33ea`;
+see that directory's README and license. That commit also added an x86
+(`aotcrtstub_i386.asm` / `ntdllcrt_i386.def`) stub, which is vendored for
+parity but not currently built, since AotAnywhere only supports `win-x64` and
+`win-arm64` targets. AotAnywhere-specific ARM64 helpers live in the adjacent
+`eng/aotcrtstub-extra.*` files. Keeping all inputs in this repository makes
+package builds reproducible without a runtime-repository checkout.
 
 ## Layout contract
 

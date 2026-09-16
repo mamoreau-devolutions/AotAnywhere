@@ -65,6 +65,21 @@
       <Pack>true</Pack>
       <PackagePath>build/apple-sysroot</PackagePath>
     </None>
+    <!-- Optional artifacts produced by the Windows CRT-stub build. The
+         release pipeline supplies AotAnywhereAotCrtStubPayloadDir; ordinary
+         development packs simply omit this experimental content. -->
+    <None Include="$(AotAnywhereAotCrtStubPayloadDir)\**\*"
+          Condition="'$(AotAnywhereAotCrtStubPayloadDir)' != '' and Exists('$(AotAnywhereAotCrtStubPayloadDir)')">
+      <Pack>true</Pack>
+      <PackagePath>build/aot-crt-stub</PackagePath>
+      <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
+    <None Include="$(AotAnywhereWindowsSdkImportsPayloadDir)\**\*"
+          Condition="'$(AotAnywhereWindowsSdkImportsPayloadDir)' != '' and Exists('$(AotAnywhereWindowsSdkImportsPayloadDir)')">
+      <Pack>true</Pack>
+      <PackagePath>build/windows-sdk-imports</PackagePath>
+      <TargetPath>%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </None>
     <!-- Sdk/Sdk.props is packed by BakeSdkProps below (it needs the version
          substituted); only the static half is a plain pack item. -->
     <None Include="Sdk/Sdk.targets">
@@ -153,7 +168,14 @@
          nested <MSBuild> Restore+Build does not set up netstandard2.0 reference
          assemblies correctly - a fresh `dotnet build` restores and builds it
          properly. -->
-    <Exec Command="dotnet build &quot;$(MSBuildThisFileDirectory)tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj&quot; -c Release" />
+    <!-- -p:Platform=AnyCPU guards against an ambient Platform environment
+         variable (e.g. set by msvc-dev-cmd/vcvarsall.bat on Windows CI
+         runners) leaking into this separate process: MSBuild treats
+         environment variables as low-priority global properties, and a
+         non-AnyCPU Platform makes the SDK insert a platform-name segment
+         into the output path (bin\x64\Release\... instead of
+         bin\Release\...), which the hard-coded path below does not expect. -->
+    <Exec Command="dotnet build &quot;$(MSBuildThisFileDirectory)tasks/AotAnywhere.Tasks/AotAnywhere.Tasks.csproj&quot; -c Release -p:Platform=AnyCPU" />
     <ItemGroup>
       <_TasksAssembly Include="$(MSBuildThisFileDirectory)tasks/AotAnywhere.Tasks/bin/Release/netstandard2.0/AotAnywhere.Tasks.dll" />
     </ItemGroup>
